@@ -13,4 +13,4 @@ install:
 uninstall:
 	@cp $(PREFIX)/rm.bak $(PREFIX)/rm
 	@chmod 755 $(PREFIX)/rm
-	@echo "Successfully recovered to the origin rm"
+	@echo "Successfully recovered to the original rm"

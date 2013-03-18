@@ -8,7 +8,9 @@
 
 A much safer replacement for bash rm
 
-Mac OS X ONLY so far.
+Mac OS X **ONLY** so far.
+
+Using safe-rm will replace the original `/bin/rm` of Mac OS X which will be backed up before replacing.
 
 Install
 ----
