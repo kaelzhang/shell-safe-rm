@@ -7,3 +7,14 @@
     |_______||__| |__||___|    |_______|       |___|  |_||_|   |_|
 
 A much safer replacement for bash rm
+
+Mac OS X ONLY so far.
+
+Install
+----
+	make && sudo make install
+	# and enjoy
+	
+Uninstall
+----
+	make && sudo make uninstall
