@@ -15,14 +15,14 @@ TIME="$Y-$M-$D $h.$m.$s"
 # rm "$TRASH"
 
 
-function help()
+help()
 {
     exit 0
 }
 
 # overload arguments
 
-declare -a FILE_NAME
+FILE_NAME=
 
 # flags
 OPT_FORCE=0
