@@ -17,6 +17,15 @@ Install
 	make && sudo make install
 	# and enjoy
 	
+After installation, when you execute `rm` command in the Terminal, lines of below will be printed:
+
+	> rm
+	safe-rm
+	usage: rm [-f | -i] [-dPRrvW] file ...
+       unlink file
+
+which helps to tell safe-rm from the original rm.
+	
 Uninstall
 ----
 	make && sudo make uninstall
