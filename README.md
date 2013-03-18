@@ -6,16 +6,20 @@
      _____| ||   _   ||   |    |   |___        |   |  | || ||_|| |
     |_______||__| |__||___|    |_______|       |___|  |_||_|   |_|
 
-A much safer replacement for bash rm
+A much safer replacement of bash rm
 
 Mac OS X **ONLY** so far.
 
-Using safe-rm will replace the original `/bin/rm` of Mac OS X which will be backed up before replacing.
+Using safe-rm, the files or directories you choose to remove will move to Trash(OS X) instead of simply deleting them. You could put them back whenever you want manually.
+
+If a file or directory with the same name already exists in the Trash, the name of newly-deleted items will be ended with the current date and time.
 
 Install
 ----
 	make && sudo make install
 	# and enjoy
+	
+Installing safe-rm will replace the original `/bin/rm` of Mac OS X which will be backed up before replacing.
 	
 After installation, when you execute `rm` command in the Terminal, lines of below will be printed:
 
