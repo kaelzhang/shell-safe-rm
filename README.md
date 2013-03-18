@@ -16,8 +16,14 @@ If a file or directory with the same name already exists in the Trash, the name 
 
 Install
 ----
+Normally:
+
 	make && sudo make install
 	# and enjoy
+	
+For those who have no `make` command:
+
+	sudo sh install.sh
 	
 Installing safe-rm will replace the original `/bin/rm` of Mac OS X which will be backed up before replacing.
 	
@@ -33,3 +39,6 @@ which helps to tell safe-rm from the original rm.
 Uninstall
 ----
 	make && sudo make uninstall
+Or
+
+	sudo sh uninstall.sh
