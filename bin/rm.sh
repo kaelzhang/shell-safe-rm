@@ -10,23 +10,46 @@ m=`date +%M`
 s=`date +%S`
 TIME="$Y-$M-$D $h.$m.$s"
 
-# echo "time: $TIME; Y: $Y"
+# flags
+debug=
 
-# rm "$TRASH"
-
-
-help()
-{
-    exit 0
+# tools
+debug(){
+    if [ -n "$debug" ]; then
+        echo "$@" >&2
+    fi
 }
+
+invalid_option(){
+    # -k -> k
+    c=`echo $1 | cut -d '-' -f2`
+
+    # todo
+    echo "rm: illegal option -- $c"
+    usage
+}
+
+
+usage()
+{
+    echo "usage: rm [-f | -i] [-dPRrvW] file ..."
+    echo "       unlink file"
+}
+
+
+if [[ "$#" = 0 ]]; then
+    echo "safe-rm"
+    usage
+fi
 
 # overload arguments
 
 FILE_NAME=
 
 # flags
-OPT_FORCE=0
-OPT_RECURSIVE=0
+OPT_FORCE=
+OPT_INTERACTIVE=
+OPT_RECURSIVE=
 
 # temp
 i=0
@@ -39,13 +62,18 @@ do
         # shift
         # ;;
 
-        -f)
-        OPT_FORCE=1
+        -f|--force)
+        OPT_FORCE=1; debug "force"
+        shift
+        ;;
+
+        -i|--interactive)
+        OPT_INTERACTIVE=1; debug "interactive"
         shift
         ;;
 
         -[rR]|--[rR]ecursive)
-        OPT_RECURSIVE=1
+        OPT_RECURSIVE=1; debug "recursive"
         shift
         ;;
 
@@ -55,9 +83,9 @@ do
         ;;
 
         *)
-        FILE_NAME[i]=$1
+        FILE_NAME[i]=$1; debug "file: $1"
         ((i += 1))
-        shift 1
+        shift
         ;;
     esac
 done
@@ -66,10 +94,10 @@ done
 # make sure recycled bin exists
 if [[ ! -e "$TRASH" ]]; then
     echo "Directory \"$TRASH\" does not exist, do you want create it?"
-    echo "(yes/no):"
+    echo -n "(yes/no): "
     
     read answer
-    if [[ "$answer" -eq "yes" || ! -n "$anwser" ]]; then
+    if [[ "$answer" = "yes" || ! -n $anwser ]]; then
         mkdir -p "$TRASH"
     else
         echo "Canceled!"
@@ -89,9 +117,9 @@ do
         if [[ -d "$file" ]]; then
 
             # if a directory, and without '-r' option
-            if [[ "$OPT_RECURSIVE" -eq "0" ]]; then
+            if [[ ! -n "$OPT_RECURSIVE" ]]; then
                 echo "$COMMAND: $file: is a directory"
-                echo "  -- maybe you should use a \"-r\" option"
+                echo "(maybe you should use a \"-r\" option)"
                 fail=1
             fi
         fi
@@ -100,23 +128,35 @@ do
         fail=1
     fi
 
-    
 
-    if [[ "$fail" -eq "0" ]]; then
+    if [[ "$fail" = 0 ]]; then
+
         # if already in the trash
         if [[ -e "$trash_name" ]]; then
-            trash_name=`echo "$trash_name $TIME"`
+            trash_name="$trash_name $TIME"
             # echo "exists, rename to $trash_name"
+
+        else
+            trash_name="$trash_name"
         fi
 
         # echo "move $file"
         # echo "to $trash_name"
 
+        if [[ "$OPT_INTERACTIVE" = 1 ]]; then
+            echo "remove $file? "
+            read answer
+
+            if [[ "$answer" = "yes" || "$answer" = "y" || "$answer" = "YES" || "$answer" = "Y" ]]; then
+                :
+            else
+                exit 0
+            fi
+        fi
+
         mv "$file" "$trash_name"
     fi
 done
-
-
 
 
 
