@@ -12,7 +12,7 @@ date_time(){
 
 
 # flags
-debug=1
+debug=
 
 # tools
 debug(){
