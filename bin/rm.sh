@@ -3,6 +3,9 @@
 TRASH="$HOME/.Trash"
 COMMAND=rm
 
+# pwd
+__DIRNAME=$(pwd)
+
 GUID=0
 TIME=
 date_time(){
@@ -220,7 +223,7 @@ remove(){
                 echo -n "remove $file? "
                 read answer
                 if [[ ${answer:0:1} =~ [yY] ]]; then
-                    [[ $(ls -A $file) ]] && {
+                    [[ $(ls -A "$file") ]] && {
                         echo "$COMMAND: $file: Directory not empty"
 
                         return 1
@@ -257,7 +260,7 @@ recursive_remove(){
 
     # it's weird of bash `for` operator
     # if $1 is an empty dir, $path will be "$1/*", so we check the dir first
-    [[ $(ls -A $1) ]] && for path in $1/*
+    [[ $(ls -A "$1") ]] && for path in $1/*
     do
         remove $path
     done
@@ -267,7 +270,22 @@ recursive_remove(){
 # determine to trash
 trash(){
     local file=$1
-    trash_name=$TRASH/$(basename $file)
+    local base=$(basename "$file")
+
+    # basename ./       -> .
+    # basename ../      -> ..
+    # basename ../abc   -> abc
+
+    if [[ ${base:0:1} = '.' ]]; then
+        # then file must be a relative dir
+        cd $file
+
+        # pwd can't be piped?
+        base=$(pwd)
+        base=$(basename "$base")
+    fi
+
+    local trash_name=$TRASH/$base
 
     # if already in the trash
     if [[ -e "$trash_name" ]]; then
@@ -278,7 +296,9 @@ trash(){
 
     [[ "$OPT_VERBOSE" = 1 ]] && echo $file
 
-    mv "$file" "$trash_name"
+    cd ..
+    mv "$base" "$trash_name"
+    cd $__DIRNAME &> /dev/null
 }
 
 
@@ -291,7 +311,7 @@ do
     fi
 
     # deal with wildcard and also, redirect error output
-    ls_result=$(ls -d $file 2> /dev/null)
+    ls_result=$(ls -d "$file" 2> /dev/null)
 
     if [[ -n "$ls_result" ]]; then
         for file in $ls_result
