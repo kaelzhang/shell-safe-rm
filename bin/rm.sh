@@ -246,7 +246,11 @@ remove(){
 recursive_remove(){
     local path
 
-    for path in $1/*
+    # remove the ending '/'
+    # abc/abc/ -> abc/abc
+    local dir=${1%/}
+
+    for path in $dir/*
     do
         remove $path
     done
@@ -273,12 +277,8 @@ trash(){
 
 for file in ${FILE_NAME[@]}
 do
-    # remove the ending '/'
-    # abc/abc/ -> abc/abc
-    cleaned=${file%/}
-
     # deal with wildcard and also, redirect error output
-    ls_result=$(ls -d $cleaned 2> /dev/null)
+    ls_result=$(ls -d $file 2> /dev/null)
 
     if [[ -n "$ls_result" ]]; then
         for file in $ls_result
