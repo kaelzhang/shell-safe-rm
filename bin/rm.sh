@@ -191,17 +191,13 @@ fi
 remove(){
     local file=$1
 
-    if [[ ! -e "$file" ]]; then
-        echo "$COMMAND: $file: No such file or directory"
-        exit 1
-    fi
-
+    # if is dir
     if [[ -d "$file" ]]; then
 
         # if a directory, and without '-r' option
         if [[ ! -n "$OPT_RECURSIVE" ]]; then
             echo "$COMMAND: $file: is a directory"
-            exit 1
+            return 1
         fi
 
         if [[ "$OPT_INTERACTIVE" = 1 ]]; then
@@ -222,8 +218,7 @@ remove(){
                     [[ $(ls -A $file) ]] && {
                         echo "$COMMAND: $file: Directory not empty"
 
-                        # set global exit code
-                        EXIT_CODE=1
+                        return 1
 
                     } || trash $file
                 fi
@@ -239,7 +234,7 @@ remove(){
             if [[ ${answer:0:1} =~ [yY] ]]; then
                 :
             else
-                exit 0
+                return 0
             fi
         fi
 
@@ -280,7 +275,22 @@ for file in ${FILE_NAME[@]}
 do
     # remove the ending '/'
     # abc/abc/ -> abc/abc
-    remove ${file%/}
+    cleaned=${file%/}
+
+    # deal with wildcard and also, redirect error output
+    ls_result=$(ls -d $cleaned 2> /dev/null)
+
+    if [[ -n "$ls_result" ]]; then
+        for file in $ls_result
+        do
+            remove $file || {
+                EXIT_CODE=1
+            }
+        done
+    else
+        echo "$COMMAND: $file: No such file or directory"
+        EXIT_CODE=1
+    fi
 done
 
 exit $EXIT_CODE

@@ -28,7 +28,7 @@ For those implemented options, safe-rm will act **exactly the same** as the orig
 
 Combined short options are also supported, such as
 
-`-rf`, `-rif`, etc
+`-rf`, `-riv`, etc
 
 ## Install
 
