@@ -1,7 +1,7 @@
 #!/bin/bash
 
 TRASH="$HOME/.Trash"
-COMMAND="$0"
+COMMAND=rm
 
 GUID=0
 TIME=
@@ -139,7 +139,6 @@ EXIT_CODE=0
 # parse options
 for arg in ${ARG[@]}
 do
-    debug arg $arg
     case $arg in
 
         # There's no --help|-h option for rm on Mac OS 
@@ -149,21 +148,21 @@ do
         # ;;
 
         -f|--force)
-            OPT_FORCE=1; debug "force"
+            OPT_FORCE=1;        debug "force        : $arg"
             ;;
 
         -i|--interactive)
-            OPT_INTERACTIVE=1; debug "interactive"
+            OPT_INTERACTIVE=1;  debug "interactive  : $arg"
             ;;
 
         # both r and R is allowed
         -[rR]|--[rR]ecursive)
-            OPT_RECURSIVE=1; debug "recursive"
+            OPT_RECURSIVE=1;    debug "recursive    : $arg"
             ;;
 
         # only lowercase v is allowed
         -v|--verbose)
-            OPT_VERBOSE=1; debug "verbose"
+            OPT_VERBOSE=1;      debug "verbose      : $arg"
             ;;
 
         *)
@@ -192,7 +191,7 @@ fi
 remove(){
     local file=$1
 
-    if [[ -e "$file" ]]; then
+    if [[ ! -e "$file" ]]; then
         echo "$COMMAND: $file: No such file or directory"
         exit 1
     fi
@@ -211,7 +210,7 @@ remove(){
 
             # actually, as long as the answer start with 'y', the file will be removed
             # default to no remove
-            if [[ ${anwser:0:1} =~ [yY] ]]; then
+            if [[ ${answer:0:1} =~ [yY] ]]; then
 
                 # if choose to examine the dir, recursively check files first
                 recursive_remove $file
@@ -219,13 +218,14 @@ remove(){
                 # interact with the dir at last
                 echo -n "remove $file? "
                 read answer
-                if [[ ${anwser:0:1} =~ [yY] ]]; then
-                    if [[ $(ls -A $file) ]] && trash $file || {
+                if [[ ${answer:0:1} =~ [yY] ]]; then
+                    [[ $(ls -A $file) ]] && {
                         echo "$COMMAND: $file: Directory not empty"
 
                         # set global exit code
                         EXIT_CODE=1
-                    }
+
+                    } || trash $file
                 fi
             fi
         else
@@ -236,7 +236,7 @@ remove(){
         if [[ "$OPT_INTERACTIVE" = 1 ]]; then
             echo -n "remove $file? "
             read answer
-            if [[ ${anwser:0:1} =~ [yY] ]]; then
+            if [[ ${answer:0:1} =~ [yY] ]]; then
                 :
             else
                 exit 0
