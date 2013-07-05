@@ -36,6 +36,22 @@ print_2(){
     esac
 }
 
+print_3(){
+    case $1 in
+        .|..)
+            echo 1
+            ;;
+
+        a)
+            echo 2
+            ;;
+
+        aa)
+            echo 3
+            ;;
+    esac
+}
+
 print 1234
 print 123
 print 12
@@ -47,3 +63,10 @@ print_2 1234
 print_2 123
 print_2 12
 print_2 1
+
+echo ---------
+
+print_3 a
+print_3 aa
+print_3 ..
+print_3 .

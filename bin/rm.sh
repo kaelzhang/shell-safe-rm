@@ -99,7 +99,7 @@ do
 
             # ATTENSION: 
             # Regex in bash is not perl regex,
-            # in which `'*'` means at least one and has no `'+'`
+            # in which `'*'` means "anything" (including nothing)
             -[a-zA-Z]*)
                 split_push_arg $1; debug "short option $1"
                 ;;
@@ -200,6 +200,11 @@ remove(){
             return 1
         fi
 
+        if [[ $file = './' ]]; then
+            echo "$COMMAND: $file: Invalid argument"
+            return 1
+        fi
+
         if [[ "$OPT_INTERACTIVE" = 1 ]]; then
             echo -n "examine files in directory $file? "
             read answer
@@ -250,7 +255,9 @@ recursive_remove(){
     # abc/abc/ -> abc/abc
     local dir=${1%/}
 
-    for path in $dir/*
+    # it's weird of bash `for` operator
+    # if $1 is an empty dir, $path will be "$1/*", so we check the dir first
+    [[ $(ls -A $1) ]] && for path in $1/*
     do
         remove $path
     done
@@ -277,6 +284,12 @@ trash(){
 
 for file in ${FILE_NAME[@]}
 do
+    if [[ $file = "." || $file = ".." ]]; then
+        echo "$COMMAND: \".\" and \"..\" may not be removed"
+        EXIT_CODE=1
+        continue
+    fi
+
     # deal with wildcard and also, redirect error output
     ls_result=$(ls -d $file 2> /dev/null)
 
