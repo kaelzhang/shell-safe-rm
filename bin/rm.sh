@@ -305,6 +305,7 @@ trash(){
 }
 
 # list all files and maintain outward sequence
+# we can't just use `find $file`, 'coz `find` act a inward searching, unlike rm -v
 list_files(){
     local file=$1
 
