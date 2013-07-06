@@ -1,7 +1,15 @@
 #!/bin/bash
 
-TRASH="$HOME/.Trash"
-COMMAND=rm
+# You could modify these environment variables to change the default constants
+# Default to the trash bin of Mac OS X.
+SAFE_RM_TRASH=${SAFE_RM_TRASH:="$HOME/.Trash"}
+
+# Print debug info or not
+SAFE_RM_DEBUG=${SAFE_RM_DEBUG:=}
+# --------------------------------------------------------------------------------
+
+# Simple basename: /bin/rm -> rm
+COMMAND=${0##*/}
 
 # pwd
 __DIRNAME=$(pwd)
@@ -13,19 +21,15 @@ date_time(){
     (( GUID += 1 ))
 }
 
-
-# flags
-debug=
-
 # tools
 debug(){
-    if [ -n "$debug" ]; then
+    if [ -n "$SAFE_RM_DEBUG" ]; then
         echo "[D] $@" >&2
     fi
 }
 
 
-# parse argv -----------------------------
+# parse argv --------------------------------------------------------------------------------
 
 invalid_option(){
     # if there's an invalid option, `rm` only takes the second char of the option string
@@ -49,7 +53,6 @@ if [[ "$#" = 0 ]]; then
     echo "safe-rm"
     usage
 fi
-
 
 ARG_END=
 FILE_NAME=
@@ -173,17 +176,17 @@ do
             ;;
     esac
 done
-# /parse argv -----------------------------
+# /parse argv --------------------------------------------------------------------------------
 
 
 # make sure recycled bin exists
-if [[ ! -e "$TRASH" ]]; then
-    echo "Directory \"$TRASH\" does not exist, do you want create it?"
+if [[ ! -e "$SAFE_RM_TRASH" ]]; then
+    echo "Directory \"$SAFE_RM_TRASH\" does not exist, do you want create it?"
     echo -n "(yes/no): "
     
     read answer
     if [[ "$answer" = "yes" || ! -n $anwser ]]; then
-        mkdir -p "$TRASH"
+        mkdir -p "$SAFE_RM_TRASH"
     else
         echo "Canceled!"
         exit 1
@@ -293,7 +296,7 @@ trash(){
         travel=1
     fi
 
-    local trash_name=$TRASH/$base
+    local trash_name=$SAFE_RM_TRASH/$base
 
     # if already in the trash
     if [[ -e "$trash_name" ]]; then
