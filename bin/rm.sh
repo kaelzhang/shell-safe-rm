@@ -284,8 +284,8 @@ trash(){
     # basename ./       -> .
     # basename ../      -> ..
     # basename ../abc   -> abc
-
-    if [[ ${base:0:1} = '.' ]]; then
+    # basename ../.abc  -> .abc
+    if [[ -d "$file" && ${base:0:1} = '.' ]]; then
         # then file must be a relative dir
         cd $file
 
