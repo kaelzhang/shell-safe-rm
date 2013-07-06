@@ -20,7 +20,7 @@ debug=
 # tools
 debug(){
     if [ -n "$debug" ]; then
-        echo "$@" >&2
+        echo "[D] $@" >&2
     fi
 }
 
@@ -254,22 +254,25 @@ remove(){
 recursive_remove(){
     local path
 
-    # remove the ending '/'
-    # abc/abc/ -> abc/abc
-    local dir=${1%/}
+    # use `ls -A` instead of `for` to list hidden files
+    local list=$(ls -A "$1")
 
-    # it's weird of bash `for` operator
-    # if $1 is an empty dir, $path will be "$1/*", so we check the dir first
-    [[ $(ls -A "$1") ]] && for path in $1/*
+    [[ -n "$list" ]] && for path in $list
     do
-        remove $path
+        remove "$1/$path"
     done
 }
 
 
 # trash a file or dir directly
 trash(){
+    debug "trash $1"
+
+    # origin file path
     local file=$1
+
+    # the first parameter to be passed to `mv` 
+    local move=$file
     local base=$(basename "$file")
     local travel=
 
@@ -282,8 +285,8 @@ trash(){
         cd $file
 
         # pwd can't be piped?
-        base=$(pwd)
-        base=$(basename "$base")
+        move=$(pwd)
+        move=$(basename "$move")
         cd ..
         travel=1
     fi
@@ -299,7 +302,8 @@ trash(){
 
     [[ "$OPT_VERBOSE" = 1 ]] && list_files $file
 
-    mv "$base" "$trash_name"
+    debug "mv $move to $trash_name"
+    mv "$move" "$trash_name"
 
     [[ "$travel" = 1 ]] && cd $__DIRNAME &> /dev/null
 }
@@ -307,18 +311,17 @@ trash(){
 # list all files and maintain outward sequence
 # we can't just use `find $file`, 'coz `find` act a inward searching, unlike rm -v
 list_files(){
-    local file=$1
-
-    if [[ -d "$file" ]]; then
+    if [[ -d "$1" ]]; then
+        local list=$(ls -A "$1")
         local f
 
-        for f in $file/*
+        [[ -n "$list" ]] && for f in $list
         do
-            list_files $f
+            list_files "$1/$f"
         done
     fi
 
-    echo $file
+    echo $1
 }
 
 
