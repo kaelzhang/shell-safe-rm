@@ -26,6 +26,8 @@ For those implemented options, safe-rm will act **exactly the same** as the orig
 
 `-v`, `--verbose`
 
+`--`
+
 Combined short options are also supported, such as
 
 `-rf`, `-riv`, etc
