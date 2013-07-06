@@ -267,10 +267,11 @@ recursive_remove(){
 }
 
 
-# determine to trash
+# trash a file or dir directly
 trash(){
     local file=$1
     local base=$(basename "$file")
+    local travel=
 
     # basename ./       -> .
     # basename ../      -> ..
@@ -283,6 +284,8 @@ trash(){
         # pwd can't be piped?
         base=$(pwd)
         base=$(basename "$base")
+        cd ..
+        travel=1
     fi
 
     local trash_name=$TRASH/$base
@@ -294,11 +297,27 @@ trash(){
         trash_name="$trash_name $TIME"
     fi
 
-    [[ "$OPT_VERBOSE" = 1 ]] && echo $file
+    [[ "$OPT_VERBOSE" = 1 ]] && list_files $file
 
-    cd ..
     mv "$base" "$trash_name"
-    cd $__DIRNAME &> /dev/null
+
+    [[ "$travel" = 1 ]] && cd $__DIRNAME &> /dev/null
+}
+
+# list all files and maintain outward sequence
+list_files(){
+    local file=$1
+
+    if [[ -d "$file" ]]; then
+        local f
+
+        for f in $file/*
+        do
+            list_files $f
+        done
+    fi
+
+    echo $file
 }
 
 
