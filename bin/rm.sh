@@ -254,7 +254,9 @@ remove(){
 recursive_remove(){
     local path
 
-    # use `ls -A` instead of `for` to list hidden files
+    # use `ls -A` instead of `for` to list hidden files.
+    # and `for $1/*` is also weird if `$1` is neithor a dir nor existing that will print "$1/*" directly and rudely.
+    # never use `find $1`, for the searching order is not what we want
     local list=$(ls -A "$1")
 
     [[ -n "$list" ]] && for path in $list
