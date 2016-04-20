@@ -353,7 +353,7 @@ debug "${#FILE_NAME[@]} files or directory to process: ${FILE_NAME[@]}"
 
 # test remove interactive_once: ask for 3 or more files or with recorsive option
 if [[ (${#FILE_NAME[@]} > 2 || $OPT_RECURSIVE = 1) && $OPT_INTERACTIVE_ONCE = 1 ]]; then
-  echo -n "$0: remove all arguments? "
+  echo -n "$COMMAND: remove all arguments? "
   read answer
 
   # actually, as long as the answer start with 'y', the file will be removed
@@ -366,7 +366,24 @@ fi
 
 for file in ${FILE_NAME[@]}
 do
+    if [[ $file = "/" ]]; then
+        echo "it is dangerous to operate recursively on /"
+        echo "are you insane?"
+        EXIT_CODE=1
+
+        # Exit immediately
+        debug "EXIT_CODE $EXIT_CODE"
+        exit $EXIT_CODE
+    fi
+
     if [[ $file = "." || $file = ".." ]]; then
+        echo "$COMMAND: \".\" and \"..\" may not be removed"
+        EXIT_CODE=1
+        continue
+    fi
+
+    #the same check also apply on /. /..
+    if [[ $(basename $file) = "." || $(basename $file) = ".." ]]; then
         echo "$COMMAND: \".\" and \"..\" may not be removed"
         EXIT_CODE=1
         continue
