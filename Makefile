@@ -1,16 +1,14 @@
 PREFIX=/bin
 
 install:
-	@if [ ! -e $(PREFIX)/rm.bak ]; then \
-		echo "... backup $(PREFIX)/rm to $(PREFIX)/rm.bak"; \
-		cp $(PREFIX)/rm $(PREFIX)/rm.bak; \
-	fi
-
-	@cp bin/rm.sh $(PREFIX)/rm
-	@chmod 755 $(PREFIX)/rm
-	@echo "Installation Succeeded! Enjoy!"
+	@cp bin/rm.sh $(PREFIX)/safe-rm
+	@chmod 755 $(PREFIX)/safe-rm
+	@echo "Installation Succeeded!"
+	@echo "Please add \"alias rm='$(PREFIX)/safe-rm'\" to your ~/.bashrc script"
+	@echo "Enjoy!"
 
 uninstall:
-	@cp $(PREFIX)/rm.bak $(PREFIX)/rm
-	@chmod 755 $(PREFIX)/rm
-	@echo "Successfully recovered to the original rm"
+	@rm $(PREFIX)/safe-rm
+	@echo "Please remove \"alias rm='$(PREFIX)/safe-rm'\" from your ~/.bashrc script"
+	@echo "and do 'unalias rm' from all your terminal sessions"
+	@echo "Successfully removed $(PREFIX)/safe-rm"
