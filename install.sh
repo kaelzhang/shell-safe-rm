@@ -1,12 +1,9 @@
 #!/bin/bash
 
-PREFIX=/bin
+PREFIX="/bin"
 
-if [ ! -e "$PREFIX/rm.bak" ]; then
-    echo "... backup $PREFIX/rm to $PREFIX/rm.bak"
-    cp $PREFIX/rm $PREFIX/rm.bak
-fi
-
-cp bin/rm.sh $PREFIX/rm
-chmod 755 $PREFIX/rm
-echo "Installation Succeeded! Enjoy!"
+cp bin/rm.sh $PREFIX/safe-rm
+chmod 755 $PREFIX/safe-rm
+echo "Installation Succeeded!"
+echo "Please add \"alias rm='$PREFIX/safe-rm'\" to your ~/.bashrc script"
+echo "Enjoy!"
