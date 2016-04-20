@@ -41,7 +41,7 @@ invalid_option(){
 }
 
 usage(){
-    echo "usage: rm [-f | -i] [-dPRrvW] file ..."
+    echo "usage: rm [-f | -i | -I] [-dPRrvW] file ..."
     echo "       unlink file"
 
     # if has an invalid option, exit with 64
@@ -136,6 +136,7 @@ done
 # flags
 OPT_FORCE=
 OPT_INTERACTIVE=
+OPT_INTERACTIVE_ONCE=
 OPT_RECURSIVE=
 OPT_VERBOSE=
 
@@ -157,8 +158,16 @@ do
             OPT_FORCE=1;        debug "force        : $arg"
             ;;
 
-        -i|--interactive)
+        # interactive=always
+        -i|--interactive|--interactive=always)
             OPT_INTERACTIVE=1;  debug "interactive  : $arg"
+            OPT_INTERACTIVE_ONCE=
+            ;;
+
+        # interactive=once. interactive=once and interactive=always are exclusive
+        -I|--interactive=once)
+            OPT_INTERACTIVE_ONCE=1;  debug "interactive_once  : $arg"
+            OPT_INTERACTIVE=;
             ;;
 
         # both r and R is allowed
@@ -339,6 +348,22 @@ list_files(){
 }
 
 
+# debug: get $FILE_NAME array length
+debug "${#FILE_NAME[@]} files or directory to process: ${FILE_NAME[@]}"
+
+# test remove interactive_once: ask for 3 or more files or with recorsive option
+if [[ (${#FILE_NAME[@]} > 2 || $OPT_RECURSIVE = 1) && $OPT_INTERACTIVE_ONCE = 1 ]]; then
+  echo -n "$0: remove all arguments? "
+  read answer
+
+  # actually, as long as the answer start with 'y', the file will be removed
+  # default to no remove
+  if [[ ! ${answer:0:1} =~ [yY] ]]; then
+    debug "EXIT_CODE $EXIT_CODE"
+    exit $EXIT_CODE
+  fi
+fi
+
 for file in ${FILE_NAME[@]}
 do
     if [[ $file = "." || $file = ".." ]]; then
@@ -349,6 +374,9 @@ do
 
     # deal with wildcard and also, redirect error output
     ls_result=$(ls -d "$file" 2> /dev/null)
+
+    # debug
+    debug "ls_result: $ls_result"
 
     if [[ -n "$ls_result" ]]; then
         for file in $ls_result
