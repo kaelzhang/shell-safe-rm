@@ -17,7 +17,7 @@ __DIRNAME=$(pwd)
 GUID=0
 TIME=
 date_time(){
-    TIME=$(date +%Y-%m-%d-%H-%M-%S)-$GUID
+    TIME=$(date +%Y-%m-%d_%H:%M:%S)-$GUID
     (( GUID += 1 ))
 }
 
@@ -103,7 +103,7 @@ do
             # case:
             # rm -vf -ir a b
 
-            # ATTENSION: 
+            # ATTENTION:
             # Regex in bash is not perl regex,
             # in which `'*'` means "anything" (including nothing)
             -[a-zA-Z]*)
@@ -147,7 +147,7 @@ for arg in ${ARG[@]}
 do
     case $arg in
 
-        # There's no --help|-h option for rm on Mac OS 
+        # There's no --help|-h option for rm on Mac OS
         # [hH]|--[hH]elp)
         # help
         # shift
@@ -183,7 +183,7 @@ done
 if [[ ! -e "$SAFE_RM_TRASH" ]]; then
     echo "Directory \"$SAFE_RM_TRASH\" does not exist, do you want create it?"
     echo -n "(yes/no): "
-    
+
     read answer
     if [[ "$answer" = "yes" || ! -n $anwser ]]; then
         mkdir -p "$SAFE_RM_TRASH"
@@ -231,13 +231,18 @@ remove(){
 
                         return 1
 
-                    } || trash $file
+                    } || {
+                        trash $file
+                        debug "$LINENO: trash returned status $?"
+                      }
                 fi
             fi
         else
             trash $file
+            debug "$LINENO: trash returned status $?"
         fi
 
+    # if is a file
     else
         if [[ "$OPT_INTERACTIVE" = 1 ]]; then
             echo -n "remove $file? "
@@ -250,6 +255,7 @@ remove(){
         fi
 
         trash $file
+        debug "$LINENO: trash returned status $?"
     fi
 }
 
@@ -276,7 +282,7 @@ trash(){
     # origin file path
     local file=$1
 
-    # the first parameter to be passed to `mv` 
+    # the first parameter to be passed to `mv`
     local move=$file
     local base=$(basename "$file")
     local travel=
@@ -302,7 +308,7 @@ trash(){
     if [[ -e "$trash_name" ]]; then
         # renew $TIME
         date_time
-        trash_name="$trash_name $TIME"
+        trash_name="$trash_name-$TIME"
     fi
 
     [[ "$OPT_VERBOSE" = 1 ]] && list_files $file
@@ -311,6 +317,9 @@ trash(){
     mv "$move" "$trash_name"
 
     [[ "$travel" = 1 ]] && cd $__DIRNAME &> /dev/null
+
+    #default status
+    return 0
 }
 
 # list all files and maintain outward sequence
@@ -343,10 +352,14 @@ do
 
     if [[ -n "$ls_result" ]]; then
         for file in $ls_result
+
         do
-            remove $file || {
+            remove "$file"
+            status=$?
+            debug "remove returned status: $status"
+            if [[ ! $status == 0 ]]; then
                 EXIT_CODE=1
-            }
+            fi
         done
     else
         echo "$COMMAND: $file: No such file or directory"
@@ -354,5 +367,5 @@ do
     fi
 done
 
+debug "EXIT_CODE $EXIT_CODE"
 exit $EXIT_CODE
-
