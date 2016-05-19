@@ -1,5 +1,4 @@
 language: bash
 
 script:
-    - make install
-    - make uninstall
+    - make test
