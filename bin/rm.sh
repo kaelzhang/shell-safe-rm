@@ -211,6 +211,7 @@ remove(){
 
         # if a directory, and without '-r' option
         if [[ ! -n "$OPT_RECURSIVE" ]]; then
+            debug "$LINENO: $file: is a directory"
             echo "$COMMAND: $file: is a directory"
             return 1
         fi
