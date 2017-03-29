@@ -1,8 +1,13 @@
 #!/bin/bash
 
 # You could modify these environment variables to change the default constants
-# Default to the trash bin of Mac OS X.
-SAFE_RM_TRASH=${SAFE_RM_TRASH:="$HOME/.Trash"}
+# Default to ~/.Trash on Mac, ~/.local/share/Trash/files on Linux.
+DEFAULT_TRASH="$HOME/.Trash"
+if [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+    DEFAULT_TRASH="$HOME/.local/share/Trash/files"
+fi
+SAFE_RM_TRASH=${SAFE_RM_TRASH:="$DEFAULT_TRASH"}
+
 
 # Print debug info or not
 SAFE_RM_DEBUG=${SAFE_RM_DEBUG:=}
@@ -355,4 +360,3 @@ do
 done
 
 exit $EXIT_CODE
-
