@@ -17,7 +17,7 @@ __DIRNAME=$(pwd)
 GUID=0
 TIME=
 date_time(){
-    TIME=$(date +%Y-%m-%d-%H-%M-%S)-$GUID
+    TIME=$(date +%Y-%m-%d_%H:%M:%S)-$GUID
     (( GUID += 1 ))
 }
 
@@ -41,7 +41,7 @@ invalid_option(){
 }
 
 usage(){
-    echo "usage: rm [-f | -i] [-dPRrvW] file ..."
+    echo "usage: rm [-f | -i | -I] [-dPRrvW] file ..."
     echo "       unlink file"
 
     # if has an invalid option, exit with 64
@@ -103,7 +103,7 @@ do
             # case:
             # rm -vf -ir a b
 
-            # ATTENSION: 
+            # ATTENTION:
             # Regex in bash is not perl regex,
             # in which `'*'` means "anything" (including nothing)
             -[a-zA-Z]*)
@@ -136,6 +136,7 @@ done
 # flags
 OPT_FORCE=
 OPT_INTERACTIVE=
+OPT_INTERACTIVE_ONCE=
 OPT_RECURSIVE=
 OPT_VERBOSE=
 
@@ -147,7 +148,7 @@ for arg in ${ARG[@]}
 do
     case $arg in
 
-        # There's no --help|-h option for rm on Mac OS 
+        # There's no --help|-h option for rm on Mac OS
         # [hH]|--[hH]elp)
         # help
         # shift
@@ -157,8 +158,16 @@ do
             OPT_FORCE=1;        debug "force        : $arg"
             ;;
 
-        -i|--interactive)
+        # interactive=always
+        -i|--interactive|--interactive=always)
             OPT_INTERACTIVE=1;  debug "interactive  : $arg"
+            OPT_INTERACTIVE_ONCE=
+            ;;
+
+        # interactive=once. interactive=once and interactive=always are exclusive
+        -I|--interactive=once)
+            OPT_INTERACTIVE_ONCE=1;  debug "interactive_once  : $arg"
+            OPT_INTERACTIVE=;
             ;;
 
         # both r and R is allowed
@@ -183,7 +192,7 @@ done
 if [[ ! -e "$SAFE_RM_TRASH" ]]; then
     echo "Directory \"$SAFE_RM_TRASH\" does not exist, do you want create it?"
     echo -n "(yes/no): "
-    
+
     read answer
     if [[ "$answer" = "yes" || ! -n $anwser ]]; then
         mkdir -p "$SAFE_RM_TRASH"
@@ -202,6 +211,7 @@ remove(){
 
         # if a directory, and without '-r' option
         if [[ ! -n "$OPT_RECURSIVE" ]]; then
+            debug "$LINENO: $file: is a directory"
             echo "$COMMAND: $file: is a directory"
             return 1
         fi
@@ -231,13 +241,18 @@ remove(){
 
                         return 1
 
-                    } || trash $file
+                    } || {
+                        trash $file
+                        debug "$LINENO: trash returned status $?"
+                      }
                 fi
             fi
         else
             trash $file
+            debug "$LINENO: trash returned status $?"
         fi
 
+    # if is a file
     else
         if [[ "$OPT_INTERACTIVE" = 1 ]]; then
             echo -n "remove $file? "
@@ -250,6 +265,7 @@ remove(){
         fi
 
         trash $file
+        debug "$LINENO: trash returned status $?"
     fi
 }
 
@@ -276,7 +292,7 @@ trash(){
     # origin file path
     local file=$1
 
-    # the first parameter to be passed to `mv` 
+    # the first parameter to be passed to `mv`
     local move=$file
     local base=$(basename "$file")
     local travel=
@@ -302,7 +318,7 @@ trash(){
     if [[ -e "$trash_name" ]]; then
         # renew $TIME
         date_time
-        trash_name="$trash_name $TIME"
+        trash_name="$trash_name-$TIME"
     fi
 
     [[ "$OPT_VERBOSE" = 1 ]] && list_files $file
@@ -311,6 +327,9 @@ trash(){
     mv "$move" "$trash_name"
 
     [[ "$travel" = 1 ]] && cd $__DIRNAME &> /dev/null
+
+    #default status
+    return 0
 }
 
 # list all files and maintain outward sequence
@@ -330,9 +349,42 @@ list_files(){
 }
 
 
+# debug: get $FILE_NAME array length
+debug "${#FILE_NAME[@]} files or directory to process: ${FILE_NAME[@]}"
+
+# test remove interactive_once: ask for 3 or more files or with recorsive option
+if [[ (${#FILE_NAME[@]} > 2 || $OPT_RECURSIVE = 1) && $OPT_INTERACTIVE_ONCE = 1 ]]; then
+  echo -n "$COMMAND: remove all arguments? "
+  read answer
+
+  # actually, as long as the answer start with 'y', the file will be removed
+  # default to no remove
+  if [[ ! ${answer:0:1} =~ [yY] ]]; then
+    debug "EXIT_CODE $EXIT_CODE"
+    exit $EXIT_CODE
+  fi
+fi
+
 for file in ${FILE_NAME[@]}
 do
+    if [[ $file = "/" ]]; then
+        echo "it is dangerous to operate recursively on /"
+        echo "are you insane?"
+        EXIT_CODE=1
+
+        # Exit immediately
+        debug "EXIT_CODE $EXIT_CODE"
+        exit $EXIT_CODE
+    fi
+
     if [[ $file = "." || $file = ".." ]]; then
+        echo "$COMMAND: \".\" and \"..\" may not be removed"
+        EXIT_CODE=1
+        continue
+    fi
+
+    #the same check also apply on /. /..
+    if [[ $(basename $file) = "." || $(basename $file) = ".." ]]; then
         echo "$COMMAND: \".\" and \"..\" may not be removed"
         EXIT_CODE=1
         continue
@@ -341,12 +393,19 @@ do
     # deal with wildcard and also, redirect error output
     ls_result=$(ls -d "$file" 2> /dev/null)
 
+    # debug
+    debug "ls_result: $ls_result"
+
     if [[ -n "$ls_result" ]]; then
         for file in $ls_result
+
         do
-            remove $file || {
+            remove "$file"
+            status=$?
+            debug "remove returned status: $status"
+            if [[ ! $status == 0 ]]; then
                 EXIT_CODE=1
-            }
+            fi
         done
     else
         echo "$COMMAND: $file: No such file or directory"
@@ -354,5 +413,5 @@ do
     fi
 done
 
+debug "EXIT_CODE $EXIT_CODE"
 exit $EXIT_CODE
-

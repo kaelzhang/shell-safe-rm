@@ -1,7 +1,8 @@
 #!/bin/bash
 
-PREFIX=/bin
+PREFIX="/bin"
 
-cp $PREFIX/rm.bak $PREFIX/rm
-chmod 755 $PREFIX/rm
-echo "Successfully recovered to the original rm"
+rm $PREFIX/safe-rm
+echo "Please remove \"alias rm='$PREFIX/safe-rm'\" from your ~/.bashrc script"
+echo "and do 'unalias rm' from all your terminal sessions"
+echo "Successfully removed $PREFIX/safe-rm"
