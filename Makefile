@@ -25,6 +25,6 @@ test:
 	@echo "Testing safe-rm by creating a directory and a symbolic link to it"
 	@mkdir /tmp/test_dir
 	@ln -s /tmp/test_dir /tmp/test_link
-	@$(PREFIX)/safe-rm /tmp/test_link
-	@$(PREFIX)/safe-rm -r /tmp/test_dir
+	@bin/rm.sh /tmp/test_link
+	@bin/rm.sh -r /tmp/test_dir
 	@cd $(OLDPWD)
