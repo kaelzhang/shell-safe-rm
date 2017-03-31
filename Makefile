@@ -13,5 +13,18 @@ uninstall:
 	@echo "and do 'unalias rm' from all your terminal sessions"
 	@echo "Successfully removed $(PREFIX)/safe-rm"
 
+# the test target will not work properly if a file named test is ever created
+# in this directory. Since it has no prerequisites, test would always be considered
+# up to date and its recipe would not be executed. To avoid this problem you
+# can explicitly declare the target to be phony by making it a prerequisite of
+# the special target
+# TODO: is test directory really needed?
+.PHONY: test
+
 test:
-	@echo "Testing safe-rm"
+	@echo "Testing safe-rm by creating a directory and a symbolic link to it"
+	@mkdir /tmp/test_dir
+	@ln -s /tmp/test_dir /tmp/test_link
+	@$(PREFIX)/safe-rm /tmp/test_link
+	@$(PREFIX)/safe-rm -r /tmp/test_dir
+	@cd $(OLDPWD)

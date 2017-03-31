@@ -208,51 +208,51 @@ fi
 remove(){
   local file=$1
 
-  # if is dir
-  if [[ -d "$file" ]]; then
+  # if is dir and not a symbolick link
+  if [[ -d "$file" && ! -L "$file" ]]; then
 
-  # if a directory, and without '-r' option
-  if [[ ! -n "$OPT_RECURSIVE" ]]; then
-    debug "$LINENO: $file: is a directory"
-    echo "$COMMAND: $file: is a directory"
-    return 1
-  fi
-
-  if [[ $file = './' ]]; then
-    echo "$COMMAND: $file: Invalid argument"
-    return 1
-  fi
-
-  if [[ "$OPT_INTERACTIVE" = 1 ]]; then
-    echo -n "examine files in directory $file? "
-    read answer
-
-    # actually, as long as the answer start with 'y', the file will be removed
-    # default to no remove
-    if [[ ${answer:0:1} =~ [yY] ]]; then
-
-      # if choose to examine the dir, recursively check files first
-      recursive_remove $file
-
-      # interact with the dir at last
-      echo -n "remove $file? "
-      read answer
-      if [[ ${answer:0:1} =~ [yY] ]]; then
-        [[ $(ls -A "$file") ]] && {
-          echo "$COMMAND: $file: Directory not empty"
-
-          return 1
-
-        } || {
-          trash $file
-          debug "$LINENO: trash returned status $?"
-        }
-      fi
+    # if a directory, and without '-r' option
+    if [[ ! -n "$OPT_RECURSIVE" ]]; then
+      debug "$LINENO: $file: is a directory"
+      echo "$COMMAND: $file: is a directory"
+      return 1
     fi
-  else
-    trash $file
-    debug "$LINENO: trash returned status $?"
-  fi
+
+    if [[ $file = './' ]]; then
+      echo "$COMMAND: $file: Invalid argument"
+      return 1
+    fi
+
+    if [[ "$OPT_INTERACTIVE" = 1 ]]; then
+      echo -n "examine files in directory $file? "
+      read answer
+
+      # actually, as long as the answer start with 'y', the file will be removed
+      # default to no remove
+      if [[ ${answer:0:1} =~ [yY] ]]; then
+
+        # if choose to examine the dir, recursively check files first
+        recursive_remove $file
+
+        # interact with the dir at last
+        echo -n "remove $file? "
+        read answer
+        if [[ ${answer:0:1} =~ [yY] ]]; then
+          [[ $(ls -A "$file") ]] && {
+            echo "$COMMAND: $file: Directory not empty"
+
+            return 1
+
+          } || {
+            trash $file
+            debug "$LINENO: trash returned status $?"
+          }
+        fi
+      fi
+    else
+      trash $file
+      debug "$LINENO: trash returned status $?"
+    fi
 
   # if is a file
   else
