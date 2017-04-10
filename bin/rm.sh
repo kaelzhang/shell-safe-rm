@@ -3,9 +3,11 @@
 # You could modify these environment variables to change the default constants
 # Default to ~/.Trash on Mac, ~/.local/share/Trash/files on Linux.
 DEFAULT_TRASH="$HOME/.Trash"
-if [[ "$(expr substr $(uname -s) 1 5)" == "Linux" ]]; then
+if [[ "$(uname -s)" == "Linux" ]]; then
   DEFAULT_TRASH="$HOME/.local/share/Trash/files"
 fi
+
+
 SAFE_RM_TRASH=${SAFE_RM_TRASH:="$DEFAULT_TRASH"}
 
 
@@ -29,7 +31,7 @@ date_time(){
 # tools
 debug(){
   if [[ -n "$SAFE_RM_DEBUG" ]]; then
-  echo "[D] $@" >&2
+    echo "[D] $@" >&2
   fi
 }
 
