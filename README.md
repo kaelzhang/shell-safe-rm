@@ -1,11 +1,11 @@
 
-     _______  _______  _______  _______         ______    __   __  
-    |       ||   _   ||       ||       |       |    _ |  |  |_|  |  
-    |  _____||  |_|  ||    ___||    ___| ____  |   | ||  |       |  
-    | |_____ |       ||   |___ |   |___ |____| |   |_||_ |       |  
-    |_____  ||       ||    ___||    ___|       |    __  ||       |  
-     _____| ||   _   ||   |    |   |___        |   |  | || ||_|| |  
-    |_______||__| |__||___|    |_______|       |___|  |_||_|   |_|  
+     _______  _______  _______  _______         ______    __   __
+    |       ||   _   ||       ||       |       |    _ |  |  |_|  |
+    |  _____||  |_|  ||    ___||    ___| ____  |   | ||  |       |
+    | |_____ |       ||   |___ |   |___ |____| |   |_||_ |       |
+    |_____  ||       ||    ___||    ___|       |    __  ||       |
+     _____| ||   _   ||   |    |   |___        |   |  | || ||_|| |
+    |_______||__| |__||___|    |_______|       |___|  |_||_|   |_|
 
 A much safer replacement of bash `rm` with **ALMOST FULL** features of the origin `rm` command.
 
@@ -48,7 +48,7 @@ Installing safe-rm will put `safe-rm` in your `/bin` directory. In order to use
 `safe-rm`, you need to add an alias to your `~/.bashrc` script and in all yours
 currently open terminals, like this:
 
-    alias rm='/bin/shell-safe-rm'
+    alias rm='/bin/safe-rm'
 
 After installation and alias definition, when you execute `rm` command in the Terminal, lines of below will be printed:
 
