@@ -47,12 +47,16 @@ and `path/to` is where you git clone `shell-safe-rm` in your local machine.
 
 Normally:
 
-	make && sudo make install
-	# and enjoy
+```sh
+make && sudo make install
+# and enjoy
+```
 
 For those who have no `make` command:
 
-	sudo sh install.sh
+```sh
+sudo sh install.sh
+```
 
 Installing safe-rm will put `safe-rm` in your `/bin` directory. In order to use
 `safe-rm`, you need to add an alias to your `~/.bashrc` script and in all yours
@@ -64,17 +68,23 @@ alias rm='/bin/safe-rm'
 
 After installation and alias definition, when you execute `rm` command in the Terminal, lines of below will be printed:
 
-	> rm
-	safe-rm
-	usage: rm [-f | -i] [-dPRrvW] file ...
-       unlink file
+```sh
+> rm
+safe-rm
+usage: rm [-f | -i] [-dPRrvW] file ...
+     unlink file
+```
 
 which helps to tell safe-rm from the original rm.
 
 ## Uninstall
 
-	make && sudo make uninstall
+```sh
+make && sudo make uninstall
+```
 
 Or
 
-	sudo sh uninstall.sh
+```sh
+sudo sh uninstall.sh
+```
