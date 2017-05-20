@@ -33,7 +33,17 @@ Combined short options are also supported, such as
 
 `-rf`, `-riv`, etc
 
-## Install
+## Usual Installation
+
+Add an alias to your `~/.bashrc` script,
+
+```sh
+alias rm='path/to/bin/rm.sh'
+```
+
+and `path/to` is where you git clone `shell-safe-rm` in your local machine.
+
+## Permanent Installation
 
 Normally:
 
@@ -48,7 +58,9 @@ Installing safe-rm will put `safe-rm` in your `/bin` directory. In order to use
 `safe-rm`, you need to add an alias to your `~/.bashrc` script and in all yours
 currently open terminals, like this:
 
-    alias rm='/bin/safe-rm'
+```sh
+alias rm='/bin/safe-rm'
+```
 
 After installation and alias definition, when you execute `rm` command in the Terminal, lines of below will be printed:
 
