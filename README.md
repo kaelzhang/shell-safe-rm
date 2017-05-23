@@ -38,10 +38,10 @@ Combined short options are also supported, such as
 Add an alias to your `~/.bashrc` script,
 
 ```sh
-alias rm='path/to/bin/rm.sh'
+alias rm='/path/to/bin/rm.sh'
 ```
 
-and `path/to` is where you git clone `shell-safe-rm` in your local machine.
+and `/path/to` is where you git clone `shell-safe-rm` in your local machine.
 
 ## Permanent Installation
 
