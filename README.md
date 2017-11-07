@@ -45,13 +45,13 @@ and `/path/to` is where you git clone `shell-safe-rm` in your local machine.
 
 ## Permanent Installation
 
-If you have NPM(node) installed:
+If you have NPM (node) installed:
 
 ```sh
 npm i -g safe-rm
 ```
 
-Normally:
+Or normally with `make`:
 
 ```sh
 make && sudo make install
@@ -84,6 +84,12 @@ usage: rm [-f | -i] [-dPRrvW] file ...
 which helps to tell safe-rm from the original rm.
 
 ## Uninstall
+
+First remove the `alias` line from your `~/.bashrc` file, then
+
+```sh
+npm uninstall -g safe-rm
+```
 
 ```sh
 make && sudo make uninstall
