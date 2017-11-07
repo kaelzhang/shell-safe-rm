@@ -45,6 +45,12 @@ and `/path/to` is where you git clone `shell-safe-rm` in your local machine.
 
 ## Permanent Installation
 
+If you have NPM(node) installed:
+
+```sh
+npm i -g safe-rm
+```
+
 Normally:
 
 ```sh

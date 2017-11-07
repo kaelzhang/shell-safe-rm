@@ -1,0 +1,28 @@
+{
+  "name": "safe-rm",
+  "version": "1.0.0",
+  "description": "A much safer replacement of bash rm with nearly full functionalities and options of the rm command!",
+  "bin": {
+    "safe-rm": "./bin/rm.sh"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kaelzhang/shell-safe-rm.git"
+  },
+  "keywords": [
+    "safe-rm",
+    "rm",
+    "linux",
+    "alternative",
+    "trash"
+  ],
+  "author": "kael",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kaelzhang/shell-safe-rm/issues"
+  },
+  "homepage": "https://github.com/kaelzhang/shell-safe-rm#readme"
+}

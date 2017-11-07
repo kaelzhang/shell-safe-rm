@@ -1,5 +1,6 @@
 # Cortex project
 build/
+package-lock.json
 
 # php files
 index.php
@@ -46,5 +47,3 @@ combo/
 reference/
 jscoverage_lib/
 temp/
-
-
