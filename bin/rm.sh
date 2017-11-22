@@ -35,6 +35,20 @@ debug(){
   fi
 }
 
+realcleartrash(){
+	tree $DEFAULT_TRASH
+	echo "Are you Sure you want to delete above files?"
+	read ans
+	case $ans in 
+	y|Y|yes|Yes)
+		rm -r $DEFAULT_TRASH/*
+		echo "Cleared..."
+		;;
+	n|N|no|No)
+		echo "Exited..."
+	esac  
+}
+
 
 # parse argv -------------------------------------------------------------------------------
 
@@ -99,8 +113,13 @@ while [[ -n "$1" ]]; do
   if [[ -n "$ARG_END" ]]; then
     push_file $1
 
+  #if you use rm -c rm -C rm -clear you will really rm those things
   else
     case $1 in
+	-c|-C|--clear)
+      realcleartrash
+      ;;
+
 
     # case:
     # rm -v -f -i a b
