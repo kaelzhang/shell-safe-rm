@@ -116,7 +116,7 @@ while [[ -n "$1" ]]; do
   #if you use rm -c rm -C rm -clear you will really rm those things
   else
     case $1 in
-	-c|-C|-clear)
+	-c|-C|--clear)
       realcleartrash
       ;;
 
