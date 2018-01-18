@@ -92,6 +92,8 @@ First remove the `alias` line from your `~/.bashrc` file, then
 npm uninstall -g safe-rm
 ```
 
+Or
+
 ```sh
 make && sudo make uninstall
 ```
