@@ -18,7 +18,7 @@ If a file or directory with the same name already exists in the Trash, the name 
 
 ## Supported options
 
-For those implemented options, safe-rm will act **exactly the same** as the origin `rm` command
+For those implemented options, safe-rm will act **exactly the same** as the original `rm` command
 
 `-i`, `--interactive`
 
