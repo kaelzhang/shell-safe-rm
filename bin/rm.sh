@@ -74,7 +74,7 @@ split_push_arg(){
   split=`echo ${1:1} | fold -w1`
 
   local arg
-  for arg in ${split[@]}; do
+  for arg in "${split[@]}"; do
     ARG[arg_i]="-$arg"
     ((arg_i += 1))
   done
@@ -91,13 +91,13 @@ push_file(){
 }
 
 # pre-parse argument vector
-while [[ -n "$1" ]]; do
+while [[ -n $1 ]]; do
   # case:
   # rm -v abc -r --force
   # -> -r will be ignored
   # -> args: ['-v'], files: ['abc', '-r', 'force']
-  if [[ -n "$ARG_END" ]]; then
-    push_file $1
+  if [[ -n $ARG_END ]]; then
+    push_file "$1"
 
   else
     case $1 in
@@ -129,7 +129,7 @@ while [[ -n "$1" ]]; do
     # rm -
     # -> args: [], files: ['-']
     *)
-      push_file $1; debug "file $1"
+      push_file "$1"; debug "file $1"
       ARG_END=1
       ;;
     esac
@@ -193,12 +193,12 @@ done
 
 
 # make sure recycled bin exists
-if [[ ! -e "$SAFE_RM_TRASH" ]]; then
+if [[ ! -e $SAFE_RM_TRASH ]]; then
   echo "Directory \"$SAFE_RM_TRASH\" does not exist, do you want create it?"
   echo -n "(yes/no): "
 
   read answer
-  if [[ "$answer" = "yes" || ! -n $anwser ]]; then
+  if [[ $answer = "yes" || ! -n $anwser ]]; then
     mkdir -p "$SAFE_RM_TRASH"
   else
     echo "Canceled!"
@@ -211,10 +211,10 @@ remove(){
   local file=$1
 
   # if is dir
-  if [[ -d "$file" ]]; then
+  if [[ -d $file ]]; then
 
   # if a directory, and without '-r' option
-  if [[ ! -n "$OPT_RECURSIVE" ]]; then
+  if [[ ! -n $OPT_RECURSIVE ]]; then
     debug "$LINENO: $file: is a directory"
     echo "$COMMAND: $file: is a directory"
     return 1
@@ -225,7 +225,7 @@ remove(){
     return 1
   fi
 
-  if [[ "$OPT_INTERACTIVE" = 1 ]]; then
+  if [[ $OPT_INTERACTIVE = 1 ]]; then
     echo -n "examine files in directory $file? "
     read answer
 
@@ -234,7 +234,7 @@ remove(){
     if [[ ${answer:0:1} =~ [yY] ]]; then
 
       # if choose to examine the dir, recursively check files first
-      recursive_remove $file
+      recursive_remove "$file"
 
       # interact with the dir at last
       echo -n "remove $file? "
@@ -246,13 +246,13 @@ remove(){
           return 1
 
         } || {
-          trash $file
+          trash "$file"
           debug "$LINENO: trash returned status $?"
         }
       fi
     fi
   else
-    trash $file
+    trash "$file"
     debug "$LINENO: trash returned status $?"
   fi
 
@@ -268,7 +268,7 @@ remove(){
       fi
     fi
 
-    trash $file
+    trash "$file"
     debug "$LINENO: trash returned status $?"
   fi
 }
@@ -282,7 +282,7 @@ recursive_remove(){
   # never use `find $1`, for the searching order is not what we want
   local list=$(ls -A "$1")
 
-  [[ -n "$list" ]] && for path in $list; do
+  [[ -n "$list" ]] && for path in "$list"; do
     remove "$1/$path"
   done
 }
@@ -324,7 +324,7 @@ trash(){
     trash_name="$trash_name-$TIME"
   fi
 
-  [[ "$OPT_VERBOSE" = 1 ]] && list_files $file
+  [[ "$OPT_VERBOSE" = 1 ]] && list_files "$file"
 
   debug "mv $move to $trash_name"
   mv "$move" "$trash_name"
@@ -367,7 +367,9 @@ if [[ (${#FILE_NAME[@]} > 2 || $OPT_RECURSIVE = 1) && $OPT_INTERACTIVE_ONCE = 1 
   fi
 fi
 
-for file in ${FILE_NAME[@]}; do
+for file in "${FILE_NAME[@]}"; do
+  debug "result file $file"
+
   if [[ $file = "/" ]]; then
     echo "it is dangerous to operate recursively on /"
     echo "are you insane?"
@@ -398,7 +400,7 @@ for file in ${FILE_NAME[@]}; do
   debug "ls_result: $ls_result"
 
   if [[ -n "$ls_result" ]]; then
-    for file in $ls_result; do
+    for file in "$ls_result"; do
       remove "$file"
       status=$?
       debug "remove returned status: $status"
