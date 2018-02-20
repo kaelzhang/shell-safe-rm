@@ -282,7 +282,7 @@ recursive_remove(){
   # never use `find $1`, for the searching order is not what we want
   local list=$(ls -A "$1")
 
-  [[ -n "$list" ]] && for path in "$list"; do
+  [[ -n $list ]] && for path in "$list"; do
     remove "$1/$path"
   done
 }
