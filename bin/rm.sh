@@ -74,7 +74,7 @@ split_push_arg(){
   split=`echo ${1:1} | fold -w1`
 
   local arg
-  for arg in "${split[@]}"; do
+  for arg in ${split[@]}; do
     ARG[arg_i]="-$arg"
     ((arg_i += 1))
   done
@@ -342,7 +342,7 @@ list_files(){
     local list=$(ls -A "$1")
     local f
 
-    [[ -n "$list" ]] && for f in $list; do
+    [[ -n $list ]] && for f in "$list"; do
       list_files "$1/$f"
     done
   fi

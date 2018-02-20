@@ -1,6 +1,6 @@
 {
   "name": "safe-rm",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "A much safer replacement of bash rm with nearly full functionalities and options of the rm command!",
   "bin": {
     "safe-rm": "./bin/rm.sh"
