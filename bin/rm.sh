@@ -387,7 +387,7 @@ for file in "${FILE_NAME[@]}"; do
   fi
 
   #the same check also apply on /. /..
-  if [[ $(basename $file) = "." || $(basename $file) = ".." ]]; then
+  if [[ $(basename "$file") = "." || $(basename "$file") = ".." ]]; then
     echo "$COMMAND: \".\" and \"..\" may not be removed"
     EXIT_CODE=1
     continue
