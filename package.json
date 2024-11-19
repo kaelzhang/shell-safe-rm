@@ -6,7 +6,9 @@
     "safe-rm": "./bin/rm.sh"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "NODE_DEBUG={{name}} ava --timeout=10s --verbose",
+    "lint": "eslint .",
+    "fix": "eslint . --fix"
   },
   "repository": {
     "type": "git",
@@ -19,10 +21,24 @@
     "alternative",
     "trash"
   ],
+  "ava": {
+    "files": [
+      "test/*.test.js"
+    ]
+  },
   "author": "kael",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/kaelzhang/shell-safe-rm/issues"
   },
-  "homepage": "https://github.com/kaelzhang/shell-safe-rm#readme"
+  "homepage": "https://github.com/kaelzhang/shell-safe-rm#readme",
+  "devDependencies": {
+    "@ostai/eslint-config": "^4.0.0",
+    "ava": "^6.2.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-import": "^2.31.0",
+    "fs-extra": "^11.2.0",
+    "tmp": "^0.2.3",
+    "uuid": "^11.0.3"
+  }
 }
