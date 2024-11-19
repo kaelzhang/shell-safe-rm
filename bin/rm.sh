@@ -8,7 +8,13 @@ if [[ "$(uname -s)" == "Linux" ]]; then
 fi
 
 
-SAFE_RM_CONF="$HOME/.safe-rm.conf"
+DEFAULT_SAFE_RM_CONF="$HOME/.safe-rm.conf"
+
+# You could modify the location of the configuration file by using
+# ```sh
+# $ export SAFE_RM_CONF=/path/to/safe-rm.conf
+# ```
+SAFE_RM_CONF=${SAFE_RM_CONF:="$DEFAULT_SAFE_RM_CONF"}
 
 if [[ -f "$SAFE_RM_CONF" ]]; then
   source "$SAFE_RM_CONF"
@@ -21,9 +27,10 @@ SAFE_RM_TRASH=${SAFE_RM_TRASH:="$DEFAULT_TRASH"}
 # Print debug info or not
 SAFE_RM_DEBUG=${SAFE_RM_DEBUG:=}
 
-#
+# Whether to warn when deleting files in the parent directory, default to NO
 SAFE_RM_WARN_WHEN_DEL_PARENT=${SAFE_RM_WARN_WHEN_DEL_PARENT:=}
 
+# Whether to delete files in the trash permanently, default to YES
 SAFE_RM_PERM_DEL_FILES_IN_TRASH=${SAFE_RM_PERM_DEL_FILES_IN_TRASH:="yes"}
 
 # -------------------------------------------------------------------------------
@@ -344,12 +351,13 @@ trash(){
 
   [[ "$travel" = 1 ]] && cd $__DIRNAME &> /dev/null
 
-  #default status
+  # default status
   return 0
 }
 
 # list all files and maintain outward sequence
-# we can't just use `find $file`, 'coz `find` act a inward searching, unlike rm -v
+# we can't just use `find $file`,
+#   'coz `find` act a inward searching, unlike rm -v
 list_files(){
   if [[ -d "$1" ]]; then
     local list=$(ls -A "$1")
@@ -367,7 +375,7 @@ list_files(){
 # debug: get $FILE_NAME array length
 debug "${#FILE_NAME[@]} files or directory to process: ${FILE_NAME[@]}"
 
-# test remove interactive_once: ask for 3 or more files or with recorsive option
+# test remove interactive_once: ask for 3 or more files or with recursive option
 if [[ (${#FILE_NAME[@]} > 2 || $OPT_RECURSIVE = 1) && $OPT_INTERACTIVE_ONCE = 1 ]]; then
   echo -n "$COMMAND: remove all arguments? "
   read answer
@@ -399,7 +407,7 @@ for file in "${FILE_NAME[@]}"; do
     continue
   fi
 
-  #the same check also apply on /. /..
+  # the same check also apply on /. /..
   if [[ $(basename "$file") = "." || $(basename "$file") = ".." ]]; then
     echo "$COMMAND: \".\" and \"..\" may not be removed"
     EXIT_CODE=1

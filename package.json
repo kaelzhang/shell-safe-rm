@@ -16,6 +16,7 @@
   },
   "keywords": [
     "safe-rm",
+    "cli",
     "rm",
     "linux",
     "alternative",
@@ -38,6 +39,7 @@
     "eslint": "^8.57.0",
     "eslint-plugin-import": "^2.31.0",
     "fs-extra": "^11.2.0",
+    "home": "^2.0.0",
     "tmp": "^0.2.3",
     "uuid": "^11.0.3"
   }

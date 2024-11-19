@@ -1,15 +1,14 @@
 const test = require('ava')
 const {
   pathExists,
+  pathInTrash,
   generateContextMethods,
   runSafeRm
 } = require('./helper')
 
 
 // Setup before each test
-test.beforeEach(async t => {
-  await generateContextMethods(t)
-})
+test.beforeEach(generateContextMethods)
 
 // Cleanup after each test
 test.afterEach.always(async t => {
@@ -23,5 +22,5 @@ test('removes a single file', async t => {
 
   t.is(result.code, 0)
   t.false(await pathExists(filepath))
+  t.true(await pathInTrash(filepath))
 })
-

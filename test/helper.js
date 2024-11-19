@@ -5,10 +5,11 @@ const {spawn} = require('child_process')
 const tmp = require('tmp')
 const fse = require('fs-extra')
 const {v4: uuid} = require('uuid')
+const home = require('home')
 
 const SAFE_RM_PATH = path.join(__dirname, '..', 'bin', 'rm.sh')
 const TEST_DIR = path.join(tmp.dirSync().name, 'safe-rm-tests')
-const TRASH_BIN = path.join()
+const TRASH_BIN = home.resolve('~/.Trash')
 
 // Helper function to check if path exists
 async function pathExists (filepath) {
@@ -18,6 +19,10 @@ async function pathExists (filepath) {
   } catch (e) {
     return false
   }
+}
+
+async function pathInTrash (filepath) {
+  return pathExists(path.join(TRASH_BIN, path.basename(filepath)))
 }
 
 const generateContextMethods = async t => {
@@ -92,6 +97,7 @@ function runSafeRm (args, input = '') {
 
 module.exports = {
   pathExists,
+  pathInTrash,
   generateContextMethods,
   runSafeRm
 }

@@ -78,7 +78,7 @@ alias rm='safe-rm'
 After installation and alias definition, when you execute `rm` command in the Terminal, lines of below will be printed:
 
 ```sh
-> rm
+$ rm
 safe-rm
 usage: rm [-f | -i] [-dPRrvW] file ...
      unlink file
