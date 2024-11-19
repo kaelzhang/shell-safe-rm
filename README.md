@@ -1,3 +1,5 @@
+# safe-rm
+
 ```
  _______  _______  _______  _______         ______    __   __
 |       ||   _   ||       ||       |       |    _ |  |  |_|  |
@@ -86,7 +88,7 @@ which helps to tell safe-rm from the original rm.
 
 ## Uninstall
 
-First remove the `alias` line from your `~/.bashrc` file, then
+First remove the `alias rm=...` line from your `~/.bashrc` file, then
 
 ```sh
 npm uninstall -g safe-rm
@@ -102,4 +104,24 @@ Or
 
 ```sh
 sudo sh uninstall.sh
+```
+
+# Advanced Sections
+
+## Configuration
+
+Since 2.0.0, you could create a configuration file named `.safe-rm.conf` in your HOME directory
+
+For the description of each config, you could refer to the sample file [here](./sample.safe-rm.conf)
+
+If you want to use a custom configuration file
+
+```sh
+alias="SAFE_RM_CONF=/path/to/safe-rm.conf /path/to/bin/rm.sh"
+```
+
+Or if it is installed by npm:
+
+```sh
+alias="SAFE_RM_CONF=/path/to/safe-rm.conf safe-rm"
 ```
