@@ -8,11 +8,24 @@ if [[ "$(uname -s)" == "Linux" ]]; then
 fi
 
 
-SAFE_RM_TRASH=${SAFE_RM_TRASH:="$DEFAULT_TRASH"}
+SAFE_RM_CONF="$HOME/.safe-rm.conf"
 
+if [[ -f "$SAFE_RM_CONF" ]]; then
+  source "$SAFE_RM_CONF"
+fi
+
+
+# The target trash directory to dispose files and directories
+SAFE_RM_TRASH=${SAFE_RM_TRASH:="$DEFAULT_TRASH"}
 
 # Print debug info or not
 SAFE_RM_DEBUG=${SAFE_RM_DEBUG:=}
+
+#
+SAFE_RM_WARN_WHEN_DEL_PARENT=${SAFE_RM_WARN_WHEN_DEL_PARENT:=}
+
+SAFE_RM_PERM_DEL_FILES_IN_TRASH=${SAFE_RM_PERM_DEL_FILES_IN_TRASH:="yes"}
+
 # -------------------------------------------------------------------------------
 
 # Simple basename: /bin/rm -> rm
@@ -48,7 +61,7 @@ invalid_option(){
 }
 
 usage(){
-  echo "usage: rm [-f | -i | -I] [-dPRrvW] file ..."
+  echo "usage: rm [-f | -i] [-dIPRrvW] file ..."
   echo "       unlink file"
 
   # if has an invalid option, exit with 64
