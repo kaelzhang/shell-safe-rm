@@ -10,7 +10,7 @@ const {
 module.exports = (
   test,
   des_prefix,
-  need_test_trash = true,
+  test_safe_rm = true,
   rm_command
 ) => {
 
@@ -32,7 +32,7 @@ module.exports = (
     t.is(result.code, 0)
     t.false(await pathExists(filepath))
 
-    if (!need_test_trash) {
+    if (!test_safe_rm) {
       return
     }
 
@@ -70,7 +70,7 @@ module.exports = (
     t.is(result3.code, 0)
     t.false(await pathExists(filepath3))
 
-    if (!need_test_trash) {
+    if (!test_safe_rm) {
       return
     }
 

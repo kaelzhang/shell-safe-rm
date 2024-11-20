@@ -339,9 +339,11 @@ trash(){
 
   # if already in the trash
   if [[ -e "$trash_name" ]]; then
+    debug "$trash_name already exists"
+
     # renew $TIME
     date_time
-    trash_name="$trash_name-$TIME"
+    trash_name="$trash_name $TIME"
   fi
 
   [[ "$OPT_VERBOSE" = 1 ]] && list_files "$file"

@@ -4,6 +4,7 @@ const {spawn} = require('child_process')
 const tmp = require('tmp')
 const fse = require('fs-extra')
 const {v4: uuid} = require('uuid')
+const log = require('util').debuglog('safe-rm')
 
 const SAFE_RM_PATH = path.join(__dirname, '..', 'bin', 'rm.sh')
 const TEST_DIR = path.join(tmp.dirSync().name, 'safe-rm-tests')
@@ -42,13 +43,19 @@ const generateContextMethods = (rm_command = SAFE_RM_PATH) => async t => {
   function runRm (args, {
     input = '',
     command = rm_command,
-    env = {}
+    env: arg_env = {}
   } = {}) {
     return new Promise(resolve => {
-      const child = spawn(command, args, {
-        env: Object.assign({
+      const env = {
+        ...process.env,
+        ...{
           SAFE_RM_TRASH: t.context.trash_path
-        }, env)
+        },
+        ...arg_env
+      }
+
+      const child = spawn(command, args, {
+        env
       })
       let stdout = ''
       let stderr = ''
@@ -71,11 +78,15 @@ const generateContextMethods = (rm_command = SAFE_RM_PATH) => async t => {
       }
 
       child.on('close', code => {
-        resolve({
+        const resolved = {
           code,
           stdout,
           stderr
-        })
+        }
+
+        log(command, 'result:', resolved)
+
+        resolve(resolved)
       })
     })
   }
@@ -93,12 +104,13 @@ const generateContextMethods = (rm_command = SAFE_RM_PATH) => async t => {
   }
 
   async function lsFileInTrash (filepath) {
-    const files = await fs.readdir(t.context.trash_path)
+    const {trash_path} = t.context
+    const files = await fs.readdir(trash_path)
 
     const filename = path.basename(filepath)
     const filtered = files.filter(
       f => f === filename || f.startsWith(`${filename} `)
-    )
+    ).map(f => path.join(trash_path, f))
 
     return filtered
   }

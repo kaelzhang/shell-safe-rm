@@ -6,7 +6,8 @@
     "safe-rm": "./bin/rm.sh"
   },
   "scripts": {
-    "test": "NODE_DEBUG={{name}} ava --timeout=10s --verbose",
+    "test": "ava --timeout=10s --verbose",
+    "test:dev": "NODE_DEBUG=safe-rm npm run test",
     "lint": "eslint .",
     "fix": "eslint . --fix"
   },
@@ -24,7 +25,7 @@
   ],
   "ava": {
     "files": [
-      "test/*.test.js"
+      "test/safe-rm.test.js"
     ]
   },
   "author": "kael",
