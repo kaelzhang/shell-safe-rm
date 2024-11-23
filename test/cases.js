@@ -12,11 +12,14 @@ module.exports = (
   test,
   des_prefix,
   test_safe_rm = true,
-  rm_command
+  rm_command,
+  env = {}
 ) => {
 
+  const IS_MACOS = process.platform === 'darwin'
+
   // Setup before each test
-  test.beforeEach(generateContextMethods(rm_command))
+  test.beforeEach(generateContextMethods(rm_command, env))
 
   test(`${des_prefix}: removes a single file`, async t => {
     const {

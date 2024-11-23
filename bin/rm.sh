@@ -65,6 +65,7 @@ if [[ "$OS_TYPE" == "MacOS" ]]; then
       SAFE_RM_USE_APPLESCRIPT=
 
     elif [[ "$SAFE_RM_TRASH" == "$DEFAULT_TRASH" ]]; then
+      debug "$LINENO: applescript enabled"
       SAFE_RM_USE_APPLESCRIPT=1
     else
       debug "$LINENO: applescript disabled due to custom trash"

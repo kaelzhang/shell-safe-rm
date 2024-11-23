@@ -9,16 +9,19 @@ const log = require('util').debuglog('safe-rm')
 const SAFE_RM_PATH = path.join(__dirname, '..', 'bin', 'rm.sh')
 const TEST_DIR = path.join(tmp.dirSync().name, 'safe-rm-tests')
 
-const generateContextMethods = (rm_command = SAFE_RM_PATH) => async t => {
+const generateContextMethods = (
+  rm_command = SAFE_RM_PATH,
+  rm_command_env = {}
+) => async t => {
   const root_path = path.join(TEST_DIR, uuid())
   t.context.root = await fse.ensureDir(root_path)
 
-  const source_path = path.join(root_path, 'source')
-  const trash_path = path.join(root_path, 'trash')
+  const source_path = t.context.source_path = path.join(root_path, 'source')
+  const trash_path = t.context.trash_path = rm_command_env.SAFE_RM_TRASH
+    ? rm_command_env.SAFE_RM_TRASH
+    : path.join(root_path, 'trash')
 
-  ;[
-    t.context.source_path, t.context.trash_path
-  ] = await Promise.all([
+  await Promise.all([
     fse.ensureDir(source_path),
     fse.ensureDir(trash_path)
   ])
@@ -51,6 +54,7 @@ const generateContextMethods = (rm_command = SAFE_RM_PATH) => async t => {
         ...{
           SAFE_RM_TRASH: t.context.trash_path
         },
+        ...rm_command_env,
         ...arg_env
       }
 

@@ -8,6 +8,7 @@
   "scripts": {
     "test": "ava --timeout=10s --verbose",
     "test:dev": "NODE_DEBUG=safe-rm npm run test",
+    "test:debug": "SAFE_RM_DEBUG=1 npm run test:dev",
     "lint": "eslint .",
     "fix": "eslint . --fix"
   },
@@ -41,6 +42,7 @@
     "eslint": "^8.57.0",
     "eslint-plugin-import": "^2.31.0",
     "fs-extra": "^11.2.0",
+    "home": "^2.0.0",
     "tmp": "^0.2.3",
     "uuid": "^11.0.3"
   }
