@@ -374,11 +374,13 @@ do_trash(){
 
 
 applescript_trash(){
-  local file=$1
+  local target=$1
 
-  debug "$LINENO: osascript delete $file"
+  [[ "$OPT_VERBOSE" == 1 ]] && list_files "$target"
 
-  osascript -e "tell application \"Finder\" to delete (POSIX file \"$file\" as alias)" &> /dev/null
+  debug "$LINENO: osascript delete $target"
+
+  osascript -e "tell application \"Finder\" to delete (POSIX file \"$target\" as alias)" &> /dev/null
 
   # TODO: handle osascript errors
   return 0
@@ -391,7 +393,8 @@ short_time(){
 }
 
 _check_trash_path_ret=
-check_trash_path(){
+
+check_mac_trash_path(){
   local path=$1
 
   # if already in the trash
@@ -401,7 +404,7 @@ check_trash_path(){
     # renew $_short_time_ret
     short_time
     _check_trash_path_ret="$path $_short_time_ret"
-    check_trash_path "$_check_trash_path_ret"
+    check_mac_trash_path "$_check_trash_path_ret"
   else
     _check_trash_path_ret=$path
   fi
@@ -420,6 +423,7 @@ check_target_to_move(){
   # basename ../abc   -> abc
   # basename ../.abc  -> .abc
   if [[ -d "$_to_move" ]]; then
+    # We don't know whether a relative path is the pwd or not
     if [[ "${_to_move:0:1}" == '.' || "$_to_move" == "$__DIRNAME" ]]; then
       cd "$_to_move"
 
@@ -442,10 +446,10 @@ mac_trash(){
   local move=$_to_move
   local base=$(basename "$move")
 
-  check_trash_path "$SAFE_RM_TRASH/$base"
+  check_mac_trash_path "$SAFE_RM_TRASH/$base"
   local trash_path=$_check_trash_path_ret
 
-  [[ "$OPT_VERBOSE" == 1 ]] && list_files "$file"
+  [[ "$OPT_VERBOSE" == 1 ]] && list_files "$1"
 
   debug "$LINENO: mv $move to $trash_path"
   mv "$move" "$trash_path"
