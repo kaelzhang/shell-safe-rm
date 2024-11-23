@@ -300,6 +300,10 @@ remove(){
         fi
       fi
     else
+      # The file
+      # - is a symbolic link
+      # - is a file
+      # - does not existx
       trash "$file"
       debug "$LINENO: trash returned status $?"
     fi
@@ -523,8 +527,8 @@ for file in "${FILE_NAME[@]}"; do
         EXIT_CODE=1
       fi
     done
-  else
-    echo "$COMMAND: $file: No such file or directory"
+  elif [[ -z "$OPT_FORCE" ]]; then
+    echo "$COMMAND: $file: No such file or directory" >&2
     EXIT_CODE=1
   fi
 done

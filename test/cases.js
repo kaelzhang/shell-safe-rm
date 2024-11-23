@@ -121,4 +121,27 @@ module.exports = (
 
     t.is(files.length, 0, 'should be already removed')
   })
+
+  test(`${des_prefix}: #22 exit code with -f option`, async t => {
+    const {
+      source_path,
+      createFile,
+      runRm,
+      pathExists,
+      lsFileInTrash
+    } = t.context
+
+    const filepath = path.join(source_path, uuid())
+    const result = await runRm(['-f', filepath])
+
+    t.is(result.code, 0, 'if rm -f a non-existing file, exit code should be 0')
+    t.is(result.stdout, '', 'stdout should be empty')
+    t.is(result.stderr, '', 'stderr should be empty')
+
+    const result_no_f = await runRm([filepath])
+
+    t.is(result_no_f.code, 1, 'exit code should be 1 without -f')
+    t.is(result_no_f.stdout, '', 'stdout should be empty')
+    t.true(result_no_f.stderr.includes(`: ${filepath}: No such file or directory`), 'stderr should include "No such file or directory"')
+  })
 }
