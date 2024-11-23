@@ -1,3 +1,5 @@
+# safe-rm
+
 ```
  _______  _______  _______  _______         ______    __   __
 |       ||   _   ||       ||       |       |    _ |  |  |_|  |
@@ -52,7 +54,7 @@ If you have NPM (node) installed (RECOMMENDED):
 npm i -g safe-rm
 ```
 
-Or normally with `make`:
+Or normally with `make` (not recommended, may be unstable):
 
 ```sh
 make && sudo make install
@@ -76,7 +78,7 @@ alias rm='safe-rm'
 After installation and alias definition, when you execute `rm` command in the Terminal, lines of below will be printed:
 
 ```sh
-> rm
+$ rm
 safe-rm
 usage: rm [-f | -i] [-dPRrvW] file ...
      unlink file
@@ -86,7 +88,7 @@ which helps to tell safe-rm from the original rm.
 
 ## Uninstall
 
-First remove the `alias` line from your `~/.bashrc` file, then
+First remove the `alias rm=...` line from your `~/.bashrc` file, then
 
 ```sh
 npm uninstall -g safe-rm
@@ -102,4 +104,27 @@ Or
 
 ```sh
 sudo sh uninstall.sh
+```
+
+# Advanced Sections
+
+## Configuration
+
+Since 2.0.0, you could create a configuration file named `.safe-rm.conf` in your HOME directory, to support
+- define your custom trash directory
+- to allow `safe-rm` to permanently delete files and directories that are already in the trash
+- to disallow `safe-rm` to use [AppleScript](https://en.wikipedia.org/wiki/AppleScript)
+
+For the description of each config, you could refer to the sample file [here](./sample.safe-rm.conf)
+
+If you want to use a custom configuration file
+
+```sh
+alias="SAFE_RM_CONF=/path/to/safe-rm.conf /path/to/bin/rm.sh"
+```
+
+Or if it is installed by npm:
+
+```sh
+alias="SAFE_RM_CONF=/path/to/safe-rm.conf safe-rm"
 ```

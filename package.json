@@ -6,7 +6,8 @@
     "safe-rm": "./bin/rm.sh"
   },
   "scripts": {
-    "test": "NODE_DEBUG={{name}} ava --timeout=10s --verbose",
+    "test": "ava --timeout=10s --verbose",
+    "test:dev": "NODE_DEBUG=safe-rm npm run test",
     "lint": "eslint .",
     "fix": "eslint . --fix"
   },
@@ -16,6 +17,7 @@
   },
   "keywords": [
     "safe-rm",
+    "cli",
     "rm",
     "linux",
     "alternative",
@@ -35,6 +37,7 @@
   "devDependencies": {
     "@ostai/eslint-config": "^4.0.0",
     "ava": "^6.2.0",
+    "delay": "^5.0.0",
     "eslint": "^8.57.0",
     "eslint-plugin-import": "^2.31.0",
     "fs-extra": "^11.2.0",
