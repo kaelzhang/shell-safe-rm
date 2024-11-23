@@ -19,17 +19,25 @@ fi
 # Print debug info or not
 SAFE_RM_DEBUG=${SAFE_RM_DEBUG:=}
 
-# tools
+# The target trash directory to dispose files and directories,
+#   defaults to the system trash directory
+SAFE_RM_TRASH=${SAFE_RM_TRASH:="$DEFAULT_TRASH"}
+
+# Whether to delete files in the trash permanently, defaults to NO
+if [[ ${SAFE_RM_PERM_DEL_FILES_IN_TRASH:0:1} =~ [yY] ]]; then
+  SAFE_RM_PERM_DEL_FILES_IN_TRASH=1
+else
+  SAFE_RM_PERM_DEL_FILES_IN_TRASH=
+fi
+
+# ------------------------------------------------------------------------------
+
 debug(){
   if [[ -n "$SAFE_RM_DEBUG" ]]; then
     echo "[D] $@" >&2
   fi
 }
 
-# ------------------------------------------------------------------------------
-
-# The target trash directory to dispose files and directories
-SAFE_RM_TRASH=${SAFE_RM_TRASH:="$DEFAULT_TRASH"}
 
 OS="$(uname -s)"
 
@@ -39,13 +47,13 @@ case "$OS" in
       DEFAULT_TRASH="$HOME/.Trash"
 
       if command -v osascript &> /dev/null; then
-        # `export SAFE_RM_USE_APPLESCRIPT="no"` in your SAFE_RM_CONF file
+        # `SAFE_RM_USE_APPLESCRIPT=no` in your SAFE_RM_CONF file
         #   to disable AppleScript
-        if [[ "$SAFE_RM_USE_APPLESCRIPT" = "no" ]]; then
+        if [[ "$SAFE_RM_USE_APPLESCRIPT" == "no" ]]; then
           debug "$LINENO: applescript disabled by conf"
           SAFE_RM_USE_APPLESCRIPT=
 
-        elif [[ "$SAFE_RM_TRAH" = "$DEFAULT_TRASH" ]]; then
+        elif [[ "$SAFE_RM_TRAH" == "$DEFAULT_TRASH" ]]; then
           SAFE_RM_USE_APPLESCRIPT=1
         else
           debug "$LINENO: applescript disabled due to custom trash"
@@ -63,13 +71,6 @@ case "$OS" in
       SAFE_RM_USE_APPLESCRIPT=
       ;;
 esac
-
-
-# Whether to warn when deleting files in the parent directory, default to NO
-SAFE_RM_WARN_WHEN_DEL_PARENT=${SAFE_RM_WARN_WHEN_DEL_PARENT:=}
-
-# Whether to delete files in the trash permanently, default to YES
-SAFE_RM_PERM_DEL_FILES_IN_TRASH=${SAFE_RM_PERM_DEL_FILES_IN_TRASH:="yes"}
 
 # ------------------------------------------------------------------------------
 
@@ -101,7 +102,7 @@ usage(){
 }
 
 
-if [[ "$#" = 0 ]]; then
+if [[ "$#" == 0 ]]; then
   echo "safe-rm"
   usage
 fi
@@ -244,7 +245,7 @@ if [[ ! -e $SAFE_RM_TRASH ]]; then
   echo -n "(yes/no): "
 
   read answer
-  if [[ $answer = "yes" || ! -n $anwser ]]; then
+  if [[ $answer == "yes" || ! -n $anwser ]]; then
     mkdir -p "$SAFE_RM_TRASH"
   else
     echo "Canceled!"
@@ -258,7 +259,7 @@ remove(){
   local file=$1
 
   # if is dir
-  if [[ -d $file ]]; then
+  if [[ -d "$file" && ! -L "$file" ]]; then
 
     # if a directory, and without '-r' option
     if [[ ! -n $OPT_RECURSIVE ]]; then
@@ -267,12 +268,12 @@ remove(){
       return 1
     fi
 
-    if [[ $file = './' ]]; then
+    if [[ "$file" == './' ]]; then
       echo "$COMMAND: $file: Invalid argument"
       return 1
     fi
 
-    if [[ $OPT_INTERACTIVE = 1 ]]; then
+    if [[ "$OPT_INTERACTIVE" == 1 ]]; then
       echo -n "examine files in directory $file? "
       read answer
 
@@ -305,7 +306,7 @@ remove(){
 
   # if is a file
   else
-    if [[ "$OPT_INTERACTIVE" = 1 ]]; then
+    if [[ "$OPT_INTERACTIVE" == 1 ]]; then
       echo -n "remove $file? "
       read answer
       if [[ ${answer:0:1} =~ [yY] ]]; then
@@ -336,11 +337,27 @@ recursive_remove(){
 
 
 trash(){
+  local target=$1
+
+  if [[ -n $SAFE_RM_PERM_DEL_FILES_IN_TRASH ]]; then
+    if [[ "$target" == "$SAFE_RM_TRASH"* ]]; then
+      # If the target is already in the trash, delete it permanently
+      /bin/rm -rf "$target"
+    else
+      do_trash "$target"
+    fi
+  else
+    do_trash "$target"
+  fi
+}
+
+
+do_trash(){
   debug "$LINENO: trash $1"
 
   if [[ -n $SAFE_RM_USE_APPLESCRIPT ]]; then
     applescript_trash "$1"
-  elif [[ "$OS_TYPE" = "MacOS" ]]; then
+  elif [[ "$OS_TYPE" == "MacOS" ]]; then
     mac_trash "$1"
   else
     linux_trash "$1"
@@ -397,7 +414,7 @@ mac_trash(){
   # basename ../      -> ..
   # basename ../abc   -> abc
   # basename ../.abc  -> .abc
-  if [[ -d "$file" && "${base:0:1}" = '.' ]]; then
+  if [[ -d "$file" && "${base:0:1}" == '.' ]]; then
     # then file must be a relative dir
     cd $file
 
@@ -412,12 +429,12 @@ mac_trash(){
   check_trash_path "$trash_path"
   trash_path=$_check_trash_path_ret
 
-  [[ "$OPT_VERBOSE" = 1 ]] && list_files "$file"
+  [[ "$OPT_VERBOSE" == 1 ]] && list_files "$file"
 
   debug "$LINENO: mv $move to $trash_path"
   mv "$move" "$trash_path"
 
-  [[ "$travel" = 1 ]] && cd $__DIRNAME &> /dev/null
+  [[ "$travel" == 1 ]] && cd $__DIRNAME &> /dev/null
 
   # default status
   return 0
@@ -452,7 +469,7 @@ list_files(){
 debug "$LINENO: ${#FILE_NAME[@]} files or directory to process: ${FILE_NAME[@]}"
 
 # test remove interactive_once: ask for 3 or more files or with recursive option
-if [[ (${#FILE_NAME[@]} > 2 || $OPT_RECURSIVE = 1) && $OPT_INTERACTIVE_ONCE = 1 ]]; then
+if [[ (${#FILE_NAME[@]} > 2 || $OPT_RECURSIVE == 1) && $OPT_INTERACTIVE_ONCE == 1 ]]; then
   echo -n "$COMMAND: remove all arguments? "
   read answer
 
@@ -467,7 +484,7 @@ fi
 for file in "${FILE_NAME[@]}"; do
   debug "$LINENO: result file $file"
 
-  if [[ $file = "/" ]]; then
+  if [[ $file == "/" ]]; then
     echo "it is dangerous to operate recursively on /"
     echo "are you insane?"
     EXIT_CODE=1
@@ -477,14 +494,14 @@ for file in "${FILE_NAME[@]}"; do
     exit $EXIT_CODE
   fi
 
-  if [[ $file = "." || $file = ".." ]]; then
+  if [[ $file == "." || $file == ".." ]]; then
     echo "$COMMAND: \".\" and \"..\" may not be removed"
     EXIT_CODE=1
     continue
   fi
 
   # the same check also apply on /. /..
-  if [[ $(basename "$file") = "." || $(basename "$file") = ".." ]]; then
+  if [[ $(basename "$file") == "." || $(basename "$file") == ".." ]]; then
     echo "$COMMAND: \".\" and \"..\" may not be removed"
     EXIT_CODE=1
     continue

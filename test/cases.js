@@ -17,7 +17,6 @@ module.exports = (
   // Setup before each test
   test.beforeEach(generateContextMethods(rm_command))
 
-  // Basic removal test
   test(`${des_prefix}: removes a single file`, async t => {
     const {
       createFile,
@@ -93,5 +92,33 @@ module.exports = (
 
     t.is(fbs3[1], time)
     t.is(fbs3[2], time)
+  })
+
+  test(`${des_prefix}: removes a single file in trash permanently`, async t => {
+    const {
+      trash_path,
+      createFile,
+      runRm,
+      pathExists,
+      lsFileInTrash
+    } = t.context
+
+    const filepath = await createFile(path.join(trash_path, uuid()))
+    const result = await runRm([filepath], {
+      env: {
+        SAFE_RM_PERM_DEL_FILES_IN_TRASH: 'yes'
+      }
+    })
+
+    t.is(result.code, 0, 'exit code should be 0')
+    t.false(await pathExists(filepath), 'file should be removed')
+
+    if (!test_safe_rm) {
+      return
+    }
+
+    const files = await lsFileInTrash(filepath)
+
+    t.is(files.length, 0, 'should be already removed')
   })
 }

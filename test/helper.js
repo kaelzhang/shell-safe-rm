@@ -25,7 +25,7 @@ const generateContextMethods = (rm_command = SAFE_RM_PATH) => async t => {
 
   // Helper function to create a temporary directory
   async function createDir (dirname = uuid()) {
-    const dirpath = path.join(t.context.source_path, dirname)
+    const dirpath = path.resolve(t.context.source_path, dirname)
     await fse.ensureDir(dirpath)
 
     return dirpath
@@ -33,7 +33,7 @@ const generateContextMethods = (rm_command = SAFE_RM_PATH) => async t => {
 
   // Helper function to create a temporary file
   async function createFile (filename = uuid(), content = 'test content') {
-    const filepath = path.join(t.context.source_path, filename)
+    const filepath = path.resolve(t.context.source_path, filename)
     await fs.writeFile(filepath, content)
 
     return filepath
