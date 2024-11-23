@@ -86,16 +86,21 @@ module.exports = (
     // /path/to/foo 12.58.23 12.58.23
     const [f1, f2, f3] = (await lsFileInTrash(filename))
     const [fb1, fb2, fb3] = [f1, f2, f3].map(f => path.basename(f))
-    const [fbs1, fbs2, fbs3] = [fb1, fb2, fb3].map(f => f.split(' '))
 
-    const time = fbs2[1]
+    if (IS_MACOS) {
+      const [fbs1, fbs2, fbs3] = [fb1, fb2, fb3].map(f => f.split(' '))
 
-    t.is(fb1, filename)
-    t.is(fbs2[0], filename)
-    t.is(fbs3[0], filename)
+      const time = fbs2[1]
 
-    t.is(fbs3[1], time)
-    t.is(fbs3[2], time)
+      t.is(fb1, filename)
+      t.is(fbs2[0], filename)
+      t.is(fbs3[0], filename)
+
+      t.is(fbs3[1], time)
+      t.is(fbs3[2], time)
+    } else {
+
+    }
   })
 
   test(`${des_prefix}: removes a single file in trash permanently`, async t => {

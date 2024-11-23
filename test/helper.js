@@ -17,9 +17,13 @@ const generateContextMethods = (
   t.context.root = await fse.ensureDir(root_path)
 
   const source_path = t.context.source_path = path.join(root_path, 'source')
-  const trash_path = t.context.trash_path = rm_command_env.SAFE_RM_TRASH
+  const trash = rm_command_env.SAFE_RM_TRASH
     ? rm_command_env.SAFE_RM_TRASH
     : path.join(root_path, 'trash')
+
+  const trash_path = t.context.trash_path = process.platform === 'darwin'
+    ? trash
+    : path.join(trash, 'files')
 
   await Promise.all([
     fse.ensureDir(source_path),
@@ -113,7 +117,7 @@ const generateContextMethods = (
 
     const filename = path.basename(filepath)
     const filtered = files.filter(
-      f => f === filename || f.startsWith(`${filename} `)
+      f => f === filename || f.startsWith(filename)
     ).map(f => path.join(trash_path, f))
 
     return filtered

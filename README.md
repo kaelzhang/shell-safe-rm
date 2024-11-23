@@ -113,9 +113,9 @@ sudo sh uninstall.sh
 ## Configuration
 
 Since 2.0.0, you could create a configuration file named `.safe-rm.conf` in your HOME directory, to support
-- define your custom trash directory
-- to allow `safe-rm` to permanently delete files and directories that are already in the trash
-- to disallow `safe-rm` to use [AppleScript](https://en.wikipedia.org/wiki/AppleScript)
+- defining your custom trash directory
+- allowing `safe-rm` to permanently delete files and directories that are already in the trash
+- disallowing `safe-rm` to use [AppleScript](https://en.wikipedia.org/wiki/AppleScript)
 
 For the description of each config, you could refer to the sample file [here](./sample.safe-rm.conf)
 

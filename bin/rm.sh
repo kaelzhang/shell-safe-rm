@@ -45,7 +45,7 @@ case "$OS" in
     # We treat all other systems as Linux
     *)
       OS_TYPE="Linux"
-      DEFAULT_TRASH="$HOME/.local/share/Trash/files"
+      DEFAULT_TRASH="$HOME/.local/share/Trash"
       SAFE_RM_USE_APPLESCRIPT=
       ;;
 esac
@@ -408,41 +408,49 @@ check_trash_path(){
 }
 
 
-# trash a file or dir directly
-mac_trash(){
-  # origin file path
-  local file=$1
+_traveled=
+_to_move=
 
-  # the first parameter to be passed to `mv`
-  local move=$file
-  local base=$(basename "$file")
-  local travel=
+check_target_to_move(){
+  _traveled=
+  _to_move=$1
 
   # basename ./       -> .
   # basename ../      -> ..
   # basename ../abc   -> abc
   # basename ../.abc  -> .abc
-  if [[ -d "$file" && "${base:0:1}" == '.' ]]; then
-    # then file must be a relative dir
-    cd $file
+  if [[ -d "$_to_move" ]]; then
+    if [[ "${_to_move:0:1}" == '.' || "$_to_move" == "$__DIRNAME" ]]; then
+      cd "$_to_move"
 
-    # pwd can't be piped?
-    move=$(pwd)
-    move=$(basename "$move")
-    cd ..
-    travel=1
+      # pwd can't be piped?
+      local current=$(pwd)
+      _to_move=$(basename "$current")
+
+      # We can not `mv` a dir that is the pwd,
+      #   or it will throw an "Operation not permitted" error,
+      #   so we have to `cd` to the parent dir first
+      cd ..
+      _traveled=1
+    fi
   fi
+}
 
-  local trash_path=$SAFE_RM_TRASH/$base
-  check_trash_path "$trash_path"
-  trash_path=$_check_trash_path_ret
+# trash a file or dir directly
+mac_trash(){
+  check_target_to_move "$1"
+  local move=$_to_move
+  local base=$(basename "$move")
+
+  check_trash_path "$SAFE_RM_TRASH/$base"
+  local trash_path=$_check_trash_path_ret
 
   [[ "$OPT_VERBOSE" == 1 ]] && list_files "$file"
 
   debug "$LINENO: mv $move to $trash_path"
   mv "$move" "$trash_path"
 
-  [[ "$travel" == 1 ]] && cd $__DIRNAME &> /dev/null
+  [[ "$_traveled" == 1 ]] && cd $__DIRNAME &> /dev/null
 
   # default status
   return 0
