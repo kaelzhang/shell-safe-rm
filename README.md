@@ -10,6 +10,8 @@
 |_______||__| |__||___|    |_______|       |___|  |_||_|   |_|
 ```
 
+[![Build Status](https://github.com/kaelzhang/shell-safe-rm/actions/workflows/nodejs.yml/badge.svg)](https://github.com/kaelzhang/shell-safe-rm/actions/workflows/nodejs.yml)
+
 A much safer replacement of bash `rm` with **ALMOST FULL** features of the origin `rm` command.
 
 Initially developed on Mac OS X, then tested on Linux.
