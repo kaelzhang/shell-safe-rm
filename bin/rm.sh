@@ -19,10 +19,6 @@ fi
 # Print debug info or not
 SAFE_RM_DEBUG=${SAFE_RM_DEBUG:=}
 
-# The target trash directory to dispose files and directories,
-#   defaults to the system trash directory
-SAFE_RM_TRASH=${SAFE_RM_TRASH:="$DEFAULT_TRASH"}
-
 # Whether to delete files in the trash permanently, defaults to NO
 if [[ ${SAFE_RM_PERM_DEL_FILES_IN_TRASH:0:1} =~ [yY] ]]; then
   SAFE_RM_PERM_DEL_FILES_IN_TRASH=1
@@ -30,7 +26,6 @@ else
   SAFE_RM_PERM_DEL_FILES_IN_TRASH=
 fi
 
-# ------------------------------------------------------------------------------
 
 debug(){
   if [[ -n "$SAFE_RM_DEBUG" ]]; then
@@ -45,23 +40,6 @@ case "$OS" in
     Darwin*)
       OS_TYPE="MacOS"
       DEFAULT_TRASH="$HOME/.Trash"
-
-      if command -v osascript &> /dev/null; then
-        # `SAFE_RM_USE_APPLESCRIPT=no` in your SAFE_RM_CONF file
-        #   to disable AppleScript
-        if [[ "$SAFE_RM_USE_APPLESCRIPT" == "no" ]]; then
-          debug "$LINENO: applescript disabled by conf"
-          SAFE_RM_USE_APPLESCRIPT=
-
-        elif [[ "$SAFE_RM_TRAH" == "$DEFAULT_TRASH" ]]; then
-          SAFE_RM_USE_APPLESCRIPT=1
-        else
-          debug "$LINENO: applescript disabled due to custom trash"
-          SAFE_RM_USE_APPLESCRIPT=
-        fi
-      else
-        SAFE_RM_USE_APPLESCRIPT=
-      fi
       ;;
 
     # We treat all other systems as Linux
@@ -71,6 +49,31 @@ case "$OS" in
       SAFE_RM_USE_APPLESCRIPT=
       ;;
 esac
+
+
+# The target trash directory to dispose files and directories,
+#   defaults to the system trash directory
+SAFE_RM_TRASH=${SAFE_RM_TRASH:="$DEFAULT_TRASH"}
+
+
+if [[ "$OS_TYPE" == "MacOS" ]]; then
+  if command -v osascript &> /dev/null; then
+    # `SAFE_RM_USE_APPLESCRIPT=no` in your SAFE_RM_CONF file
+    #   to disable AppleScript
+    if [[ "$SAFE_RM_USE_APPLESCRIPT" == "no" ]]; then
+      debug "$LINENO: applescript disabled by conf"
+      SAFE_RM_USE_APPLESCRIPT=
+
+    elif [[ "$SAFE_RM_TRASH" == "$DEFAULT_TRASH" ]]; then
+      SAFE_RM_USE_APPLESCRIPT=1
+    else
+      debug "$LINENO: applescript disabled due to custom trash"
+      SAFE_RM_USE_APPLESCRIPT=
+    fi
+  else
+    SAFE_RM_USE_APPLESCRIPT=
+  fi
+fi
 
 # ------------------------------------------------------------------------------
 
@@ -374,7 +377,7 @@ applescript_trash(){
 
   debug "$LINENO: osascript delete $file"
 
-  osascript -e "tell application \"Finder\" to delete (POSIX file \"$file\" as alias)" # &> /dev/null
+  osascript -e "tell application \"Finder\" to delete (POSIX file \"$file\" as alias)" &> /dev/null
 
   # TODO: handle osascript errors
   return 0
