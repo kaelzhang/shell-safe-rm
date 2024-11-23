@@ -1,12 +1,7 @@
 #!/bin/bash
 
-# You could modify these environment variables to change the default constants
-# Default to ~/.Trash on Mac, ~/.local/share/Trash/files on Linux.
-DEFAULT_TRASH="$HOME/.Trash"
-if [[ "$(uname -s)" == "Linux" ]]; then
-  DEFAULT_TRASH="$HOME/.local/share/Trash/files"
-fi
-
+# Basic configuration
+# ------------------------------------------------------------------------------
 
 DEFAULT_SAFE_RM_CONF="$HOME/.safe-rm.conf"
 
@@ -20,9 +15,38 @@ if [[ -f "$SAFE_RM_CONF" ]]; then
   source "$SAFE_RM_CONF"
 fi
 
+# ------------------------------------------------------------------------------
 
 # The target trash directory to dispose files and directories
 SAFE_RM_TRASH=${SAFE_RM_TRASH:="$DEFAULT_TRASH"}
+
+OS="$(uname -s)"
+
+case "$OS" in
+    Darwin*)
+      OS_TYPE="MacOS"
+      DEFAULT_TRASH="$HOME/.Trash"
+
+      if command -v osascript &> /dev/null; then
+        # `export SAFE_RM_USE_APPLESCRIPT="no"` in your SAFE_RM_CONF file
+        #   to disable AppleScript
+        if [[ "$SAFE_RM_USE_APPLESCRIPT" != "no" && "$SAFE_RM_TRAH" = "$DEFAULT_TRASH" ]]; then
+          SAFE_RM_USE_APPLESCRIPT=1
+        else
+          SAFE_RM_USE_APPLESCRIPT=
+        fi
+      else
+        SAFE_RM_USE_APPLESCRIPT=
+      fi
+      ;;
+
+    # We treat all other systems as Linux
+    *)
+      OS_TYPE="Linux"
+      DEFAULT_TRASH="$HOME/.local/share/Trash/files"
+      SAFE_RM_USE_APPLESCRIPT=
+      ;;
+esac
 
 # Print debug info or not
 SAFE_RM_DEBUG=${SAFE_RM_DEBUG:=}
@@ -33,20 +57,13 @@ SAFE_RM_WARN_WHEN_DEL_PARENT=${SAFE_RM_WARN_WHEN_DEL_PARENT:=}
 # Whether to delete files in the trash permanently, default to YES
 SAFE_RM_PERM_DEL_FILES_IN_TRASH=${SAFE_RM_PERM_DEL_FILES_IN_TRASH:="yes"}
 
-# -------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 # Simple basename: /bin/rm -> rm
 COMMAND=${0##*/}
 
 # pwd
 __DIRNAME=$(pwd)
-
-GUID=0
-TIME=
-date_time(){
-  TIME=$(date +%Y-%m-%d_%H:%M:%S)-$GUID
-  (( GUID += 1 ))
-}
 
 # tools
 debug(){
@@ -56,7 +73,8 @@ debug(){
 }
 
 
-# parse argv -------------------------------------------------------------------------------
+# parse argv
+# ------------------------------------------------------------------------------
 
 invalid_option(){
   # if there's an invalid option, `rm` only takes the second char of the option string
@@ -209,7 +227,8 @@ for arg in ${ARG[@]}; do
     ;;
   esac
 done
-# /parse argv -------------------------------------------------------------------------------
+# /parse argv
+# ------------------------------------------------------------------------------
 
 
 # make sure recycled bin exists
@@ -226,6 +245,7 @@ if [[ ! -e $SAFE_RM_TRASH ]]; then
   fi
 fi
 
+
 # try to remove a file or directory
 remove(){
   local file=$1
@@ -233,48 +253,48 @@ remove(){
   # if is dir
   if [[ -d $file ]]; then
 
-  # if a directory, and without '-r' option
-  if [[ ! -n $OPT_RECURSIVE ]]; then
-    debug "$LINENO: $file: is a directory"
-    echo "$COMMAND: $file: is a directory"
-    return 1
-  fi
-
-  if [[ $file = './' ]]; then
-    echo "$COMMAND: $file: Invalid argument"
-    return 1
-  fi
-
-  if [[ $OPT_INTERACTIVE = 1 ]]; then
-    echo -n "examine files in directory $file? "
-    read answer
-
-    # actually, as long as the answer start with 'y', the file will be removed
-    # default to no remove
-    if [[ ${answer:0:1} =~ [yY] ]]; then
-
-      # if choose to examine the dir, recursively check files first
-      recursive_remove "$file"
-
-      # interact with the dir at last
-      echo -n "remove $file? "
-      read answer
-      if [[ ${answer:0:1} =~ [yY] ]]; then
-        [[ $(ls -A "$file") ]] && {
-          echo "$COMMAND: $file: Directory not empty"
-
-          return 1
-
-        } || {
-          trash "$file"
-          debug "$LINENO: trash returned status $?"
-        }
-      fi
+    # if a directory, and without '-r' option
+    if [[ ! -n $OPT_RECURSIVE ]]; then
+      debug "$LINENO: $file: is a directory"
+      echo "$COMMAND: $file: is a directory"
+      return 1
     fi
-  else
-    trash "$file"
-    debug "$LINENO: trash returned status $?"
-  fi
+
+    if [[ $file = './' ]]; then
+      echo "$COMMAND: $file: Invalid argument"
+      return 1
+    fi
+
+    if [[ $OPT_INTERACTIVE = 1 ]]; then
+      echo -n "examine files in directory $file? "
+      read answer
+
+      # actually, as long as the answer start with 'y', the file will be removed
+      # default to no remove
+      if [[ ${answer:0:1} =~ [yY] ]]; then
+
+        # if choose to examine the dir, recursively check files first
+        recursive_remove "$file"
+
+        # interact with the dir at last
+        echo -n "remove $file? "
+        read answer
+        if [[ ${answer:0:1} =~ [yY] ]]; then
+          [[ $(ls -A "$file") ]] && {
+            echo "$COMMAND: $file: Directory not empty"
+
+            return 1
+
+          } || {
+            trash "$file"
+            debug "$LINENO: trash returned status $?"
+          }
+        fi
+      fi
+    else
+      trash "$file"
+      debug "$LINENO: trash returned status $?"
+    fi
 
   # if is a file
   else
@@ -308,10 +328,56 @@ recursive_remove(){
 }
 
 
-# trash a file or dir directly
 trash(){
   debug "trash $1"
 
+  if [[ -n $SAFE_RM_USE_APPLESCRIPT ]]; then
+    applescript_trash "$1"
+  elif [[ "$OS_TYPE" = "MacOS" ]]; then
+    mac_trash "$1"
+  else
+    linux_trash "$1"
+  fi
+}
+
+
+applescript_trash(){
+  local file=$1
+
+  debug "osascript delete $file"
+
+  osascript -e "tell application \"Finder\" to delete (POSIX file \"$file\" as alias)" # &> /dev/null
+
+  # TODO: handle osascript errors
+  return 0
+}
+
+
+_short_time_ret=
+short_time(){
+  _short_time_ret=$(date +%H.%M.%S)
+}
+
+_check_trash_path_ret=
+check_trash_path(){
+  local path=$1
+
+  # if already in the trash
+  if [[ -e "$path" ]]; then
+    debug "$path already exists"
+
+    # renew $_short_time_ret
+    short_time
+    _check_trash_path_ret="$path $_short_time_ret"
+    check_trash_path "$_check_trash_path_ret"
+  else
+    _check_trash_path_ret=$path
+  fi
+}
+
+
+# trash a file or dir directly
+mac_trash(){
   # origin file path
   local file=$1
 
@@ -324,7 +390,7 @@ trash(){
   # basename ../      -> ..
   # basename ../abc   -> abc
   # basename ../.abc  -> .abc
-  if [[ -d "$file" && ${base:0:1} = '.' ]]; then
+  if [[ -d "$file" && "${base:0:1}" = '.' ]]; then
     # then file must be a relative dir
     cd $file
 
@@ -335,27 +401,28 @@ trash(){
     travel=1
   fi
 
-  local trash_name=$SAFE_RM_TRASH/$base
-
-  # if already in the trash
-  if [[ -e "$trash_name" ]]; then
-    debug "$trash_name already exists"
-
-    # renew $TIME
-    date_time
-    trash_name="$trash_name $TIME"
-  fi
+  local trash_path=$SAFE_RM_TRASH/$base
+  check_trash_path "$trash_path"
+  trash_path=$_check_trash_path_ret
 
   [[ "$OPT_VERBOSE" = 1 ]] && list_files "$file"
 
-  debug "mv $move to $trash_name"
-  mv "$move" "$trash_name"
+  debug "mv $move to $trash_path"
+  mv "$move" "$trash_path"
 
   [[ "$travel" = 1 ]] && cd $__DIRNAME &> /dev/null
 
   # default status
   return 0
 }
+
+
+# trash a file or dir directly for linux
+# - move the target into
+linux_trash(){
+  :
+}
+
 
 # list all files and maintain outward sequence
 # we can't just use `find $file`,
