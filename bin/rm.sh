@@ -15,6 +15,17 @@ if [[ -f "$SAFE_RM_CONF" ]]; then
   source "$SAFE_RM_CONF"
 fi
 
+
+# Print debug info or not
+SAFE_RM_DEBUG=${SAFE_RM_DEBUG:=}
+
+# tools
+debug(){
+  if [[ -n "$SAFE_RM_DEBUG" ]]; then
+    echo "[D] $@" >&2
+  fi
+}
+
 # ------------------------------------------------------------------------------
 
 # The target trash directory to dispose files and directories
@@ -30,9 +41,14 @@ case "$OS" in
       if command -v osascript &> /dev/null; then
         # `export SAFE_RM_USE_APPLESCRIPT="no"` in your SAFE_RM_CONF file
         #   to disable AppleScript
-        if [[ "$SAFE_RM_USE_APPLESCRIPT" != "no" && "$SAFE_RM_TRAH" = "$DEFAULT_TRASH" ]]; then
+        if [[ "$SAFE_RM_USE_APPLESCRIPT" = "no" ]]; then
+          debug "$LINENO: applescript disabled by conf"
+          SAFE_RM_USE_APPLESCRIPT=
+
+        elif [[ "$SAFE_RM_TRAH" = "$DEFAULT_TRASH" ]]; then
           SAFE_RM_USE_APPLESCRIPT=1
         else
+          debug "$LINENO: applescript disabled due to custom trash"
           SAFE_RM_USE_APPLESCRIPT=
         fi
       else
@@ -48,8 +64,6 @@ case "$OS" in
       ;;
 esac
 
-# Print debug info or not
-SAFE_RM_DEBUG=${SAFE_RM_DEBUG:=}
 
 # Whether to warn when deleting files in the parent directory, default to NO
 SAFE_RM_WARN_WHEN_DEL_PARENT=${SAFE_RM_WARN_WHEN_DEL_PARENT:=}
@@ -64,13 +78,6 @@ COMMAND=${0##*/}
 
 # pwd
 __DIRNAME=$(pwd)
-
-# tools
-debug(){
-  if [[ -n "$SAFE_RM_DEBUG" ]]; then
-    echo "[D] $@" >&2
-  fi
-}
 
 
 # parse argv
@@ -150,24 +157,24 @@ while [[ -n $1 ]]; do
     # Regex in bash is not perl regex,
     # in which `'*'` means "anything" (including nothing)
     -[a-zA-Z]*)
-      split_push_arg $1; debug "short option $1"
+      split_push_arg $1; debug "$LINENO: short option $1"
       ;;
 
     # rm --force a
     --[a-zA-Z]*)
-      push_arg $1; debug "option $1"
+      push_arg $1; debug "$LINENO: option $1"
       ;;
 
     # rm -- -a
     --)
-      ARG_END=1; debug "divider"
+      ARG_END=1; debug "$LINENO: divider"
       ;;
 
     # case:
     # rm -
     # -> args: [], files: ['-']
     *)
-      push_file "$1"; debug "file $1"
+      push_file "$1"; debug "$LINENO: file $1"
       ARG_END=1
       ;;
     esac
@@ -197,29 +204,29 @@ for arg in ${ARG[@]}; do
   # ;;
 
   -f|--force)
-    OPT_FORCE=1;        debug "force        : $arg"
+    OPT_FORCE=1;        debug "$LINENO: force        : $arg"
     ;;
 
   # interactive=always
   -i|--interactive|--interactive=always)
-    OPT_INTERACTIVE=1;  debug "interactive  : $arg"
+    OPT_INTERACTIVE=1;  debug "$LINENO: interactive  : $arg"
     OPT_INTERACTIVE_ONCE=
     ;;
 
   # interactive=once. interactive=once and interactive=always are exclusive
   -I|--interactive=once)
-    OPT_INTERACTIVE_ONCE=1;  debug "interactive_once  : $arg"
+    OPT_INTERACTIVE_ONCE=1;  debug "$LINENO: interactive_once  : $arg"
     OPT_INTERACTIVE=;
     ;;
 
   # both r and R is allowed
   -[rR]|--[rR]ecursive)
-    OPT_RECURSIVE=1;    debug "recursive    : $arg"
+    OPT_RECURSIVE=1;    debug "$LINENO: recursive    : $arg"
     ;;
 
   # only lowercase v is allowed
   -v|--verbose)
-    OPT_VERBOSE=1;      debug "verbose      : $arg"
+    OPT_VERBOSE=1;      debug "$LINENO: verbose      : $arg"
     ;;
 
   *)
@@ -329,7 +336,7 @@ recursive_remove(){
 
 
 trash(){
-  debug "trash $1"
+  debug "$LINENO: trash $1"
 
   if [[ -n $SAFE_RM_USE_APPLESCRIPT ]]; then
     applescript_trash "$1"
@@ -344,7 +351,7 @@ trash(){
 applescript_trash(){
   local file=$1
 
-  debug "osascript delete $file"
+  debug "$LINENO: osascript delete $file"
 
   osascript -e "tell application \"Finder\" to delete (POSIX file \"$file\" as alias)" # &> /dev/null
 
@@ -364,7 +371,7 @@ check_trash_path(){
 
   # if already in the trash
   if [[ -e "$path" ]]; then
-    debug "$path already exists"
+    debug "$LINENO: $path already exists"
 
     # renew $_short_time_ret
     short_time
@@ -407,7 +414,7 @@ mac_trash(){
 
   [[ "$OPT_VERBOSE" = 1 ]] && list_files "$file"
 
-  debug "mv $move to $trash_path"
+  debug "$LINENO: mv $move to $trash_path"
   mv "$move" "$trash_path"
 
   [[ "$travel" = 1 ]] && cd $__DIRNAME &> /dev/null
@@ -442,7 +449,7 @@ list_files(){
 
 
 # debug: get $FILE_NAME array length
-debug "${#FILE_NAME[@]} files or directory to process: ${FILE_NAME[@]}"
+debug "$LINENO: ${#FILE_NAME[@]} files or directory to process: ${FILE_NAME[@]}"
 
 # test remove interactive_once: ask for 3 or more files or with recursive option
 if [[ (${#FILE_NAME[@]} > 2 || $OPT_RECURSIVE = 1) && $OPT_INTERACTIVE_ONCE = 1 ]]; then
@@ -452,13 +459,13 @@ if [[ (${#FILE_NAME[@]} > 2 || $OPT_RECURSIVE = 1) && $OPT_INTERACTIVE_ONCE = 1 
   # actually, as long as the answer start with 'y', the file will be removed
   # default to no remove
   if [[ ! ${answer:0:1} =~ [yY] ]]; then
-    debug "EXIT_CODE $EXIT_CODE"
+    debug "$LINENO: EXIT_CODE $EXIT_CODE"
     exit $EXIT_CODE
   fi
 fi
 
 for file in "${FILE_NAME[@]}"; do
-  debug "result file $file"
+  debug "$LINENO: result file $file"
 
   if [[ $file = "/" ]]; then
     echo "it is dangerous to operate recursively on /"
@@ -466,7 +473,7 @@ for file in "${FILE_NAME[@]}"; do
     EXIT_CODE=1
 
     # Exit immediately
-    debug "EXIT_CODE $EXIT_CODE"
+    debug "$LINENO: EXIT_CODE $EXIT_CODE"
     exit $EXIT_CODE
   fi
 
@@ -487,13 +494,13 @@ for file in "${FILE_NAME[@]}"; do
   ls_result=$(ls -d "$file" 2> /dev/null)
 
   # debug
-  debug "ls_result: $ls_result"
+  debug "$LINENO: ls_result: $ls_result"
 
   if [[ -n "$ls_result" ]]; then
     for file in "$ls_result"; do
       remove "$file"
       status=$?
-      debug "remove returned status: $status"
+      debug "$LINENO: remove returned status: $status"
 
       if [[ ! $status == 0 ]]; then
         EXIT_CODE=1
@@ -505,5 +512,5 @@ for file in "${FILE_NAME[@]}"; do
   fi
 done
 
-debug "EXIT_CODE $EXIT_CODE"
+debug "$LINENO: EXIT_CODE $EXIT_CODE"
 exit $EXIT_CODE
