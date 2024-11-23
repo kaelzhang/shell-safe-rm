@@ -54,7 +54,7 @@ If you have NPM (node) installed (RECOMMENDED):
 npm i -g safe-rm
 ```
 
-Or normally with `make`:
+Or normally with `make` (not recommended, may be unstable):
 
 ```sh
 make && sudo make install

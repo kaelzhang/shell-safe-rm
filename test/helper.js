@@ -124,6 +124,13 @@ const generateContextMethods = (rm_command = SAFE_RM_PATH) => async t => {
   })
 }
 
+const assertEmptySuccess = (t, result, a = '', b = '', c = '') => {
+  t.is(result.code, 0, 'exit code should be 0' + a)
+  t.is(result.stdout, '', 'stdout should be empty' + b)
+  t.is(result.stderr, '', 'stderr should be empty' + c)
+}
+
 module.exports = {
-  generateContextMethods
+  generateContextMethods,
+  assertEmptySuccess
 }

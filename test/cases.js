@@ -3,7 +3,8 @@ const {v4: uuid} = require('uuid')
 const delay = require('delay')
 
 const {
-  generateContextMethods
+  generateContextMethods,
+  assertEmptySuccess
 } = require('./helper')
 
 
@@ -60,17 +61,17 @@ module.exports = (
 
     const filepath1 = await createFile(filename, '1')
     const result1 = await runRm([filepath1])
-    t.is(result1.code, 0, 'exit code 1 should be 0')
+    assertEmptySuccess(t, result1)
     t.false(await pathExists(filepath1), 'file 1 should be removed')
 
     const filepath2 = await createFile(filename, '2')
     const result2 = await runRm([filepath2])
-    t.is(result2.code, 0, 'exit code 2 should be 0')
+    assertEmptySuccess(t, result2)
     t.false(await pathExists(filepath2), 'file 2 should be removed')
 
     const filepath3 = await createFile(filename, '3')
     const result3 = await runRm([filepath3])
-    t.is(result3.code, 0, 'exit code 3 should be 0')
+    assertEmptySuccess(t, result3)
     t.false(await pathExists(filepath3), 'file 3 should be removed')
 
     if (!test_safe_rm) {
@@ -110,7 +111,7 @@ module.exports = (
       }
     })
 
-    t.is(result.code, 0, 'exit code should be 0')
+    assertEmptySuccess(t, result)
     t.false(await pathExists(filepath), 'file should be removed')
 
     if (!test_safe_rm) {
@@ -134,9 +135,7 @@ module.exports = (
     const filepath = path.join(source_path, uuid())
     const result = await runRm(['-f', filepath])
 
-    t.is(result.code, 0, 'if rm -f a non-existing file, exit code should be 0')
-    t.is(result.stdout, '', 'stdout should be empty')
-    t.is(result.stderr, '', 'stderr should be empty')
+    assertEmptySuccess(t, result, ', if rm -f a non-existing file')
 
     const result_no_f = await runRm([filepath])
 
