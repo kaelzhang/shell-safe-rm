@@ -20,6 +20,9 @@ Using `safe-rm`, the files or directories you choose to remove will move to `$HO
 
 If a file or directory with the same name already exists in the Trash, the name of newly-deleted items will be ended with the current date and time.
 
+## Features
+- On MacOS, safe-rm` will use AppleScript to delete files or directories as much as possible to enable the built-in "put-back" capability in the system Trash bin.
+
 ## Supported options
 
 For those implemented options, safe-rm will act **exactly the same** as the original `rm` command

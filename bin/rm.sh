@@ -34,6 +34,33 @@ debug(){
 }
 
 
+error(){
+  echo $@ >&2
+}
+
+
+# global exit code, default to 0
+EXIT_CODE=0
+
+# Usage:
+# ```
+# do_exit $LINENO
+# do_exit $LINENO 1
+# ```
+do_exit(){
+  local line=$1
+  local code=$EXIT_CODE
+
+  if [[ $# -eq 2 ]]; then
+    code=$2
+  fi
+
+  # Exit immediately
+  debug "$line: exit code $code"
+  exit $code
+}
+
+
 OS="$(uname -s)"
 
 case "$OS" in
@@ -73,6 +100,13 @@ if [[ "$OS_TYPE" == "MacOS" ]]; then
     fi
   else
     SAFE_RM_USE_APPLESCRIPT=
+  fi
+else
+  if mkdir -p "$SAFE_RM_TRASH/files" &> /dev/null; then
+    debug "$LINENO: linux trash enabled"
+  else
+    error "$COMMAND: failed to create trash directory $SAFE_RM_TRASH/files"
+    do_exit $LINENO 1
   fi
 fi
 
@@ -199,9 +233,6 @@ OPT_INTERACTIVE=
 OPT_INTERACTIVE_ONCE=
 OPT_RECURSIVE=
 OPT_VERBOSE=
-
-# global exit code, default to 0
-EXIT_CODE=0
 
 # parse options
 for arg in ${ARG[@]}; do
@@ -484,7 +515,7 @@ check_linux_trash_base(){
 
     _linux_trash_base_ret="$base.$max_n"
   else
-    _linux_trash_base_ret=$path
+    _linux_trash_base_ret=$base
   fi
 }
 
@@ -550,8 +581,7 @@ if [[ (${#FILE_NAME[@]} > 2 || $OPT_RECURSIVE == 1) && $OPT_INTERACTIVE_ONCE == 
   # actually, as long as the answer start with 'y', the file will be removed
   # default to no remove
   if [[ ! ${answer:0:1} =~ [yY] ]]; then
-    debug "$LINENO: EXIT_CODE $EXIT_CODE"
-    exit $EXIT_CODE
+    do_exit $LINENO
   fi
 fi
 
@@ -559,24 +589,21 @@ for file in "${FILE_NAME[@]}"; do
   debug "$LINENO: result file $file"
 
   if [[ $file == "/" ]]; then
-    echo "it is dangerous to operate recursively on /"
-    echo "are you insane?"
+    error "it is dangerous to operate recursively on /"
+    error "are you insane?"
     EXIT_CODE=1
-
-    # Exit immediately
-    debug "$LINENO: EXIT_CODE $EXIT_CODE"
-    exit $EXIT_CODE
+    continue
   fi
 
   if [[ $file == "." || $file == ".." ]]; then
-    echo "$COMMAND: \".\" and \"..\" may not be removed"
+    error "$COMMAND: \".\" and \"..\" may not be removed"
     EXIT_CODE=1
     continue
   fi
 
   # the same check also apply on /. /..
   if [[ $(basename "$file") == "." || $(basename "$file") == ".." ]]; then
-    echo "$COMMAND: \".\" and \"..\" may not be removed"
+    error "$COMMAND: \".\" and \"..\" may not be removed"
     EXIT_CODE=1
     continue
   fi
@@ -598,10 +625,9 @@ for file in "${FILE_NAME[@]}"; do
       fi
     done
   elif [[ -z "$OPT_FORCE" ]]; then
-    echo "$COMMAND: $file: No such file or directory" >&2
+    error "$COMMAND: $file: No such file or directory" >&2
     EXIT_CODE=1
   fi
 done
 
-debug "$LINENO: EXIT_CODE $EXIT_CODE"
-exit $EXIT_CODE
+do_exit $LINENO
