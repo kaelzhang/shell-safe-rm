@@ -98,8 +98,8 @@ invalid_option(){
 }
 
 usage(){
-  echo "usage: rm [-f | -i] [-dIPRrvW] file ..."
-  echo "       unlink file"
+  echo "usage: rm [-f | -i] [-dIRrv] file ..."
+  echo "       unlink [--] file"
 
   # if has an invalid option, exit with 64
   exit 64
@@ -142,10 +142,15 @@ push_file(){
 
 # pre-parse argument vector
 while [[ -n $1 ]]; do
-  # case:
+  # Case 1:
   # rm -v abc -r --force
   # -> -r will be ignored
   # -> args: ['-v'], files: ['abc', '-r', 'force']
+
+  # Case 2:
+  # rm -- -r
+  # -> -r will be treated as a file
+  # -> args: [], files: ['-r']
   if [[ -n $ARG_END ]]; then
     push_file "$1"
 
@@ -392,8 +397,7 @@ short_time(){
   _short_time_ret=$(date +%H.%M.%S)
 }
 
-_check_trash_path_ret=
-
+_mac_trash_path_ret=
 check_mac_trash_path(){
   local path=$1
 
@@ -403,10 +407,10 @@ check_mac_trash_path(){
 
     # renew $_short_time_ret
     short_time
-    _check_trash_path_ret="$path $_short_time_ret"
-    check_mac_trash_path "$_check_trash_path_ret"
+    _mac_trash_path_ret="$path $_short_time_ret"
+    check_mac_trash_path "$_mac_trash_path_ret"
   else
-    _check_trash_path_ret=$path
+    _mac_trash_path_ret=$path
   fi
 }
 
@@ -447,7 +451,7 @@ mac_trash(){
   local base=$(basename "$move")
 
   check_mac_trash_path "$SAFE_RM_TRASH/$base"
-  local trash_path=$_check_trash_path_ret
+  local trash_path=$_mac_trash_path_ret
 
   [[ "$OPT_VERBOSE" == 1 ]] && list_files "$1"
 
@@ -461,10 +465,60 @@ mac_trash(){
 }
 
 
+_linux_trash_base_ret=
+check_linux_trash_base(){
+  local base=$1
+  local trash="$SAFE_RM_TRASH/files"
+  local path="$trash/$base"
+
+  # if already in the trash
+  if [[ -e "$path" ]]; then
+    debug "$LINENO: $path already exists"
+
+    max_n=$(find "$trash" -type f -name "${base}.*" \
+    | grep -oP "${base}\.\K\d+" \
+    | sort -n \
+    | tail -1)
+
+    (( max_n += 1 ))
+
+    _linux_trash_base_ret="$base.$max_n"
+  else
+    _linux_trash_base_ret=$path
+  fi
+}
+
+
 # trash a file or dir directly for linux
 # - move the target into
 linux_trash(){
-  :
+  check_target_to_move "$1"
+  local move=$_to_move
+  local base=$(basename "$move")
+
+  check_linux_trash_base "$base"
+  base=$_linux_trash_base_ret
+
+  local trash_path="$SAFE_RM_TRASH/files/$base"
+
+  [[ "$OPT_VERBOSE" == 1 ]] && list_files "$1"
+
+  # Move the target into the trash
+  debug "$LINENO: mv $move to $trash_path"
+  mv "$move" "$trash_path"
+
+  # Save linux trash info
+  local info_path="$SAFE_RM_TRASH/info/$base.trashinfo"
+  local trash_time=$(date +%Y-%m-%dT%H:%M:%S)
+  cat > "$info_path" <<EOF
+[Trash Info]
+Path=$move
+DeletionDate=$trash_time
+EOF
+
+  [[ "$_traveled" == 1 ]] && cd $__DIRNAME &> /dev/null
+
+  return 0
 }
 
 

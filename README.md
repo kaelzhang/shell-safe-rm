@@ -26,6 +26,8 @@ For those implemented options, safe-rm will act **exactly the same** as the orig
 
 `-i`, `--interactive`
 
+`-I`, `--interactive=once`
+
 `-f`, `--force`
 
 `-r`, `-R`, `--recursive`, `--Recursive`
@@ -36,7 +38,7 @@ For those implemented options, safe-rm will act **exactly the same** as the orig
 
 Combined short options are also supported, such as
 
-`-rf`, `-riv`, etc
+`-rf`, `-riv`, `-rfv`, etc
 
 ## Usual Installation
 
