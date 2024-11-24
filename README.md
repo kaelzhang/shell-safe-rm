@@ -22,6 +22,7 @@ If a file or directory with the same name already exists in the Trash, the name 
 
 ## Features
 - On MacOS, safe-rm` will use AppleScript to delete files or directories as much as possible to enable the built-in "put-back" capability in the system Trash bin.
+- Custom [configurations](#configuration).
 
 ## Supported options
 
