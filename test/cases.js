@@ -154,7 +154,11 @@ module.exports = (
     t.is(result_no_f.stdout, '', 'stdout should be empty')
 
     t.true(
-      result_no_f.stderr.includes(`: ${filepath}: No such file or directory`), `stderr should include "No such file or directory": ${
+      // The stderr of different rm distributions may vary:
+      // - Linux rm: "rm: cannot remove 'nonexistent.txt': No such file or directory"
+      // - Mac rm: "rm: nonexistent.txt: No such file or directory"
+      // So we just check if the stderr includes "No such file or directory"
+      result_no_f.stderr.includes('No such file or directory'), `stderr should include "No such file or directory": ${
         result_no_f.stderr
       }`)
   })
