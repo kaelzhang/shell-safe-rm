@@ -9,6 +9,10 @@ const log = require('util').debuglog('safe-rm')
 const SAFE_RM_PATH = path.join(__dirname, '..', 'bin', 'rm.sh')
 const TEST_DIR = path.join(tmp.dirSync().name, 'safe-rm-tests')
 
+const IS_MACOS = process.platform === 'darwin'
+  // For linux mock testing
+  && !process.env.SAFE_RM_DEBUG_LINUX
+
 const generateContextMethods = (
   rm_command = SAFE_RM_PATH,
   rm_command_env = {}
@@ -111,16 +115,42 @@ const generateContextMethods = (
     }
   }
 
-  async function lsFileInTrash (filepath) {
+
+  async function lsFileInMacTrash (filepath) {
     const {trash_path} = t.context
+
     const files = await fs.readdir(trash_path)
 
-    const filename = path.basename(filepath)
+    const _filename = path.basename(filepath)
+    const ext = path.extname(_filename)
+    const filename = path.basename(_filename, ext)
+
+    const regex = new RegExp(`${filename}.*${ext}$`)
+
     const filtered = files.filter(
-      f => f === filename || f.startsWith(filename)
+      f => f.endsWith(ext) && f.startsWith(filename)
     ).map(f => path.join(trash_path, f))
 
     return filtered
+  }
+
+  async function lsFileInLinuxTrash (filepath) {
+    const {trash_path: _trash_path} = t.context
+    const trash_path = path.join(_trash_path, 'files')
+
+    const filename = path.basename(filepath)
+
+    const files = await fs.readdir(trash_path)
+
+    return files
+    .filter(f => f.startsWith(filename))
+    .map(f => path.join(trash_path, f))
+  }
+
+  async function lsFileInTrash (filepath) {
+    return IS_MACOS
+      ? lsFileInMacTrash(filepath)
+      : lsFileInLinuxTrash(filepath)
   }
 
   Object.assign(t.context, {
@@ -140,5 +170,6 @@ const assertEmptySuccess = (t, result, a = '', b = '', c = '') => {
 
 module.exports = {
   generateContextMethods,
-  assertEmptySuccess
+  assertEmptySuccess,
+  IS_MACOS
 }

@@ -9,6 +9,8 @@
     "test": "ava --timeout=10s --verbose",
     "test:dev": "NODE_DEBUG=safe-rm npm run test",
     "test:debug": "SAFE_RM_DEBUG=1 npm run test:dev",
+    "test:mock-linux": "SAFE_RM_DEBUG_LINUX=1 npm run test",
+    "test:mock-linux:debug": "SAFE_RM_DEBUG=1 SAFE_RM_DEBUG_LINUX=1 npm run test:dev",
     "lint": "eslint .",
     "fix": "eslint . --fix"
   },

@@ -61,21 +61,14 @@ do_exit(){
 }
 
 
-OS="$(uname -s)"
-
-case "$OS" in
-    Darwin*)
-      OS_TYPE="MacOS"
-      DEFAULT_TRASH="$HOME/.Trash"
-      ;;
-
-    # We treat all other systems as Linux
-    *)
-      OS_TYPE="Linux"
-      DEFAULT_TRASH="$HOME/.local/share/Trash"
-      SAFE_RM_USE_APPLESCRIPT=
-      ;;
-esac
+if [[ "$(uname -s)" == "Darwin"* && -z $SAFE_RM_DEBUG_LINUX ]]; then
+  OS_TYPE="MacOS"
+  DEFAULT_TRASH="$HOME/.Trash"
+else
+  OS_TYPE="Linux"
+  DEFAULT_TRASH="$HOME/.local/share/Trash"
+  SAFE_RM_USE_APPLESCRIPT=
+fi
 
 
 # The target trash directory to dispose files and directories,
@@ -106,6 +99,13 @@ else
     debug "$LINENO: linux trash enabled"
   else
     error "$COMMAND: failed to create trash directory $SAFE_RM_TRASH/files"
+    do_exit $LINENO 1
+  fi
+
+  if mkdir -p "$SAFE_RM_TRASH/info" &> /dev/null; then
+    :
+  else
+    error "$COMMAND: failed to create trash info directory $SAFE_RM_TRASH/info"
     do_exit $LINENO 1
   fi
 fi
@@ -431,17 +431,18 @@ short_time(){
 _mac_trash_path_ret=
 check_mac_trash_path(){
   local path=$1
+  local ext=$2
+  local full_path="$path$ext"
 
   # if already in the trash
-  if [[ -e "$path" ]]; then
-    debug "$LINENO: $path already exists"
+  if [[ -e "$full_path" ]]; then
+    debug "$LINENO: $full_path already exists"
 
     # renew $_short_time_ret
     short_time
-    _mac_trash_path_ret="$path $_short_time_ret"
-    check_mac_trash_path "$_mac_trash_path_ret"
+    check_mac_trash_path "$path $_short_time_ret" "$ext"
   else
-    _mac_trash_path_ret=$path
+    _mac_trash_path_ret=$full_path
   fi
 }
 
@@ -481,7 +482,21 @@ mac_trash(){
   local move=$_to_move
   local base=$(basename "$move")
 
-  check_mac_trash_path "$SAFE_RM_TRASH/$base"
+  # foo.jpg => "foo" + ".jpg"
+  # foo => "foo" + ""
+
+  local name="${base%.*}"
+  local ext="${base##*.}"
+
+  if [[ "$name" == "$ext" ]]; then
+    ext=
+  else
+    ext=".$ext"
+  fi
+
+  # foo.jpg => "foo 12.34.56.jpg"
+
+  check_mac_trash_path "$SAFE_RM_TRASH/$name" "$ext"
   local trash_path=$_mac_trash_path_ret
 
   [[ "$OPT_VERBOSE" == 1 ]] && list_files "$1"
@@ -496,7 +511,6 @@ mac_trash(){
 }
 
 
-_linux_trash_base_ret=
 check_linux_trash_base(){
   local base=$1
   local trash="$SAFE_RM_TRASH/files"
@@ -506,16 +520,24 @@ check_linux_trash_base(){
   if [[ -e "$path" ]]; then
     debug "$LINENO: $path already exists"
 
-    max_n=$(find "$trash" -type f -name "${base}.*" \
-    | grep -oP "${base}\.\K\d+" \
-    | sort -n \
-    | tail -1)
+    local max_n=0
+    local num=
+
+    while IFS= read -r file; do
+      if [[ $file =~ ${filename}\.([0-9]+)$ ]]; then
+          # Remove leading zeros and make sure the number is in base 10
+          num=$((10#${BASH_REMATCH[1]}))
+          if ((num > max_n)); then
+              max_n=$num
+          fi
+      fi
+    done < <(find "$trash" -maxdepth 1)
 
     (( max_n += 1 ))
 
-    _linux_trash_base_ret="$base.$max_n"
+    echo "$base.$max_n"
   else
-    _linux_trash_base_ret=$base
+    echo "$base"
   fi
 }
 
@@ -527,8 +549,7 @@ linux_trash(){
   local move=$_to_move
   local base=$(basename "$move")
 
-  check_linux_trash_base "$base"
-  base=$_linux_trash_base_ret
+  base=$(check_linux_trash_base "$base")
 
   local trash_path="$SAFE_RM_TRASH/files/$base"
 

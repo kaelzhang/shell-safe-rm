@@ -14,15 +14,14 @@
 
 A much safer replacement of bash `rm` with **ALMOST FULL** features of the origin `rm` command.
 
-Initially developed on Mac OS X, then tested on Linux.
-
-Using `safe-rm`, the files or directories you choose to remove will move to `$HOME/.Trash` instead of simply deleting them. You could put them back whenever you want manually.
-
-If a file or directory with the same name already exists in the Trash, the name of newly-deleted items will be ended with the current date and time.
+The project was initially developed for Mac OS X, and then tested on Linux.
 
 ## Features
-- On MacOS, safe-rm` will use AppleScript to delete files or directories as much as possible to enable the built-in "put-back" capability in the system Trash bin.
-- Custom [configurations](#configuration).
+- Supports both MacOS and Linux with full test coverage.
+- Using `safe-rm`, the files or directories you choose to remove will be moved to the system Trash instead of simply deleting them. You could put them back whenever you want manually.
+  - On MacOS, `safe-rm` will use [AppleScript][applescript] to delete files or directories as much as possible to enable the built-in "put-back" capability in the system Trash bin.
+  - On Linux, t also follows the operating system's conventions for handling duplicate files in the Trash to avoid overwriting
+- Supports Custom [configurations](#configuration).
 
 ## Supported options
 
@@ -56,22 +55,22 @@ and `/path/to` is where you git clone `shell-safe-rm` in your local machine.
 
 ## Permanent Installation
 
-If you have NPM (node) installed (RECOMMENDED):
+If you have NPM ([NodeJS](https://nodejs.org/)) installed (RECOMMENDED):
 
 ```sh
 npm i -g safe-rm
 ```
 
-Or normally with `make` (not recommended, may be unstable):
+Or by using the source code, within the root of the current repo (not recommended, may be unstable):
 
 ```sh
+# If you have NodeJS installed
+npm link
+
+# If you don't have NodeJS or npm installed
 make && sudo make install
-# and enjoy
-```
 
-For those who have no `make` command:
-
-```sh
+# For those who have no `make` command:
 sudo sh install.sh
 ```
 
@@ -121,7 +120,7 @@ sudo sh uninstall.sh
 Since 2.0.0, you could create a configuration file named `.safe-rm.conf` in your HOME directory, to support
 - defining your custom trash directory
 - allowing `safe-rm` to permanently delete files and directories that are already in the trash
-- disallowing `safe-rm` to use [AppleScript](https://en.wikipedia.org/wiki/AppleScript)
+- disallowing `safe-rm` to use [AppleScript][applescript]
 
 For the description of each config, you could refer to the sample file [here](./sample.safe-rm.conf)
 
@@ -136,3 +135,6 @@ Or if it is installed by npm:
 ```sh
 alias="SAFE_RM_CONF=/path/to/safe-rm.conf safe-rm"
 ```
+
+
+[applescript]: https://en.wikipedia.org/wiki/AppleScript
