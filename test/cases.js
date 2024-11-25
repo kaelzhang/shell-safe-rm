@@ -152,6 +152,10 @@ module.exports = (
 
     t.is(result_no_f.code, 1, 'exit code should be 1 without -f')
     t.is(result_no_f.stdout, '', 'stdout should be empty')
-    t.true(result_no_f.stderr.includes(`: ${filepath}: No such file or directory`), 'stderr should include "No such file or directory"')
+
+    t.true(
+      result_no_f.stderr.includes(`: ${filepath}: No such file or directory`), `stderr should include "No such file or directory": ${
+        result_no_f.stderr
+      }`)
   })
 }
