@@ -125,8 +125,6 @@ const generateContextMethods = (
     const ext = path.extname(_filename)
     const filename = path.basename(_filename, ext)
 
-    const regex = new RegExp(`${filename}.*${ext}$`)
-
     const filtered = files.filter(
       f => f.endsWith(ext) && f.startsWith(filename)
     ).map(f => path.join(trash_path, f))

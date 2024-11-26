@@ -47,63 +47,109 @@ module.exports = (
     )
   })
 
-  test(`${des_prefix}: removes multiple files of the same name`, async t => {
-    const {
-      createFile,
-      runRm,
-      pathExists,
-      lsFileInTrash
-    } = t.context
+  const EXTs = [
+    '',
+    '.jpg'
+  ]
 
-    const filename = uuid()
+  EXTs.forEach(ext => {
+    const extra = ext
+      ? ` with ext "${ext}"`
+      : ''
 
-    const now = Date.now()
-    const to_next_second = 1000 - now % 1000
-    await delay(to_next_second)
+    test(`${des_prefix}: removes multiple files of the same name${extra}`, async t => {
+      const {
+        createFile,
+        runRm,
+        pathExists,
+        lsFileInTrash
+      } = t.context
 
-    const filepath1 = await createFile(filename, '1')
-    const result1 = await runRm([filepath1])
+      const filename = uuid()
+      const full_name = filename + ext
 
-    const filepath2 = await createFile(filename, '2')
-    const result2 = await runRm([filepath2])
+      const now = Date.now()
+      const to_next_second = 1000 - now % 1000
+      await delay(to_next_second)
 
-    const filepath3 = await createFile(filename, '3')
-    const result3 = await runRm([filepath3])
+      const filepath1 = await createFile(full_name, '1')
+      const result1 = await runRm([filepath1])
 
-    assertEmptySuccess(t, result1)
-    t.false(await pathExists(filepath1), 'file 1 should be removed')
+      const filepath2 = await createFile(full_name, '2')
+      const result2 = await runRm([filepath2])
 
-    assertEmptySuccess(t, result2)
-    t.false(await pathExists(filepath2), 'file 2 should be removed')
+      const filepath3 = await createFile(full_name, '3')
+      const result3 = await runRm([filepath3])
 
-    assertEmptySuccess(t, result3)
-    t.false(await pathExists(filepath3), 'file 3 should be removed')
+      assertEmptySuccess(t, result1)
+      t.false(await pathExists(filepath1), 'file 1 should be removed')
 
-    if (!test_trash_dir) {
-      return
-    }
+      assertEmptySuccess(t, result2)
+      t.false(await pathExists(filepath2), 'file 2 should be removed')
 
-    // /path/to/foo
-    // /path/to/foo 12.58.23
-    // /path/to/foo 12.58.23 12.58.23
-    const [f1, f2, f3] = (await lsFileInTrash(filename))
+      assertEmptySuccess(t, result3)
+      t.false(await pathExists(filepath3), 'file 3 should be removed')
 
-    const [fb1, fb2, fb3] = [f1, f2, f3].map(f => path.basename(f))
+      if (!test_trash_dir) {
+        return
+      }
 
-    if (IS_MACOS) {
-      const [fbs1, fbs2, fbs3] = [fb1, fb2, fb3].map(f => f.split(' '))
 
-      const time = fbs2[1]
+      const files = (await lsFileInTrash(full_name))
+      .sort((a, b) => a.length - b.length)
 
-      t.is(fb1, filename)
-      t.is(fbs2[0], filename)
-      t.is(fbs3[0], filename)
+      if (IS_MACOS) {
+        // /path/to/foo[.jpg]
+        // /path/to/foo 12.58.23[.jpg]
+        // /path/to/foo 12.58.23 12.58.23[.jpg]
+        const [f1, f2, f3] = files
 
-      t.is(fbs3[1], time)
-      t.is(fbs3[2], time)
-    } else {
+        const [fb1, fb2, fb3] = [f1, f2, f3].map(
+          f => {
+            const base = path.basename(f)
 
-    }
+            return base.slice(0, base.length - ext.length)
+          }
+        )
+
+        const [fbs1, fbs2, fbs3] = [fb1, fb2, fb3].map(f => f.split(' '))
+
+        const time = fbs2[1]
+
+        t.true(files.every(f => f.endsWith(ext)), 'should have the same ext')
+
+        t.is(fb1, filename)
+        t.is(fbs2[0], filename)
+        t.is(fbs3[0], filename)
+
+        t.is(fbs3[1], time)
+        t.is(fbs3[2], time)
+      } else {
+        // /path/to/foo[.jpg]
+        // /path/to/foo[.jpg].1
+        // /path/to/foo[.jpg].2
+        const nums = []
+        const bases = []
+        const re = /(\.(\d+))?$/
+
+        for (const file of files) {
+          const match = file.match(re)
+          const n = match[2]
+            ? parseInt(match[2])
+            : 0
+
+          const f = file.slice(0, match.index)
+
+          nums.push(n)
+          bases.push(f)
+        }
+
+        t.true(bases.every(f => f.endsWith(ext)), 'should have the same ext')
+        t.is(nums[0], 0)
+        t.is(nums[1], 1)
+        t.is(nums[2], 2)
+      }
+    })
   })
 
   test(`${des_prefix}: removes a single file in trash permanently`, async t => {
