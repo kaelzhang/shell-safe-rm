@@ -1,6 +1,7 @@
 const path = require('path')
 const {v4: uuid} = require('uuid')
 const delay = require('delay')
+const log = require('util').debuglog('safe-rm')
 
 const {
   generateContextMethods,
@@ -218,6 +219,8 @@ module.exports = (
 
     const dirpath = await createDir()
     const result1 = await runRm([dirpath])
+
+    log('rm a dir without -d', result1)
 
     t.is(result1.code, 1, 'exit code should be 1')
     t.true(result1.stderr.includes('is a directory'), 'stderr should include "is a directory"')
