@@ -27,7 +27,7 @@ The project was initially developed for Mac OS X, and then tested on Linux.
 
 For those implemented options, safe-rm will act **exactly the same** as the original `rm` command
 
-| Option | Brief | Descriptions |
+| Option | Brief | Description |
 | ------ | ----- | ------------ |
 | `-i`, `--interactive` | **Interactive** | Prompts you to confirm before removing each file |
 | `-I`, `--interactive=once` | **Less Interactive** | Prompts only once before removing more than three files or when recursively removing directories |
