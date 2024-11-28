@@ -233,6 +233,7 @@ OPT_INTERACTIVE=
 OPT_INTERACTIVE_ONCE=
 OPT_RECURSIVE=
 OPT_VERBOSE=
+OPT_EMPTY_DIR=
 
 # parse options
 for arg in ${ARG[@]}; do
@@ -270,6 +271,10 @@ for arg in ${ARG[@]}; do
     OPT_VERBOSE=1;      debug "$LINENO: verbose      : $arg"
     ;;
 
+  -d|--directory)
+    OPT_EMPTY_DIR=1;    debug "$LINENO: empty dir    : $arg"
+    ;;
+
   *)
     invalid_option $arg
     ;;
@@ -303,8 +308,15 @@ remove(){
 
     # if a directory, and without '-r' option
     if [[ ! -n $OPT_RECURSIVE ]]; then
+      # if with '-d' option, and is an empty dir
+      if [[ -n $OPT_EMPTY_DIR && ! $(ls -A "$file") ]]; then
+          debug "$LINENO: trash an empty directory $file"
+          trash "$file"
+          return
+      fi
+
       debug "$LINENO: $file: is a directory"
-      echo "$COMMAND: $file: is a directory"
+      error "$COMMAND: $file: is a directory"
       return 1
     fi
 

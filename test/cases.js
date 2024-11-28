@@ -208,4 +208,23 @@ module.exports = (
         result_no_f.stderr
       }`)
   })
+
+  test(`${des_prefix}: removes an empty directory: -d`, async t => {
+    const {
+      createDir,
+      runRm,
+      pathExists
+    } = t.context
+
+    const dirpath = await createDir()
+    const result1 = await runRm([dirpath])
+
+    t.is(result1.code, 1, 'exit code should be 1')
+    t.true(result1.stderr.includes('is a directory'), 'stderr should include "is a directory"')
+
+    const result2 = await runRm(['-d', dirpath])
+
+    assertEmptySuccess(t, result2)
+    t.false(await pathExists(dirpath), 'directory should be removed')
+  })
 }
