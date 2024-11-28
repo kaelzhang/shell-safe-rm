@@ -27,19 +27,15 @@ The project was initially developed for Mac OS X, and then tested on Linux.
 
 For those implemented options, safe-rm will act **exactly the same** as the original `rm` command
 
-`-i`, `--interactive`: Prompts you to confirm before removing each file.
-
-`-I`, `--interactive=once`: Prompts only once before removing more than three files or when recursively removing directories.
-
-`-f`, `--force`: Removes files without prompting for confirmation, ignoring nonexistent files and overriding file protections
-
-`-r`, `-R`, `--recursive`, `--Recursive`: Removes directories and their contents recursively. Required for deleting directories.
-
-`-v`, `--verbose`: Displays detailed information about each file or directory being removed.
-
-`-d`, '--directory': Removes empty directories. `safe-rm` can handle empty directories specifically with this flag.
-
-`--`: Used to indicate the end of options. Useful if a filename starts with a `-`.
+| Option | Brief | Descriptions |
+| ------ | ----- | ------------ |
+| `-i`, `--interactive` | **Interactive** | Prompts you to confirm before removing each file |
+| `-I`, `--interactive=once` | **Less Interactive** | Prompts only once before removing more than three files or when recursively removing directories |
+| `-f`, `--force` | **Force** | Removes files without prompting for confirmation, ignoring nonexistent files and overriding file protections |
+| `-r`, `-R`, `--recursive`, `--Recursive` | **Recursive** | Removes directories and their contents recursively. Required for deleting directories |
+| `-v`, `--verbose` | **Verbose** | Displays detailed information about each file or directory being removed |
+| `-d`, '--directory' | **Remove Empty Directories** | `safe-rm` can check and only remove empty directories specifically with this flag |
+| `--` | **End of Options** | Used to indicate the end of options. Useful if a filename starts with a `-` |
 
 Combined short options are also supported, such as
 
