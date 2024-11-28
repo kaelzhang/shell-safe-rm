@@ -12,7 +12,7 @@
 
 [![Build Status](https://github.com/kaelzhang/shell-safe-rm/actions/workflows/nodejs.yml/badge.svg)](https://github.com/kaelzhang/shell-safe-rm/actions/workflows/nodejs.yml)
 
-A much safer replacement of bash `rm` with **ALMOST FULL** features of the origin `rm` command.
+[Safe-rm][safe-rm], a much safer replacement of [`rm`][rm] with **ALMOST FULL** features of the origin [`rm`][rm] command.
 
 The project was initially developed for Mac OS X, and then tested on Linux.
 
@@ -20,12 +20,12 @@ The project was initially developed for Mac OS X, and then tested on Linux.
 - Supports both MacOS and Linux with full test coverage.
 - Using `safe-rm`, the files or directories you choose to remove will be moved to the system Trash instead of simply deleting them. You could put them back whenever you want manually.
   - On MacOS, `safe-rm` will use [AppleScript][applescript] to delete files or directories as much as possible to enable the built-in "put-back" capability in the system Trash bin.
-  - On Linux, t also follows the operating system's conventions for handling duplicate files in the Trash to avoid overwriting
+  - On Linux, it also follows the operating system's conventions for handling duplicate files in the Trash to avoid overwriting
 - Supports Custom [configurations](#configuration).
 
 ## Supported options
 
-For those implemented options, safe-rm will act **exactly the same** as the original `rm` command
+For those implemented options, safe-rm will act **exactly the same** as the original `rm` command:
 
 | Option | Brief | Description |
 | ------ | ----- | ------------ |
@@ -136,3 +136,5 @@ alias="SAFE_RM_CONF=/path/to/safe-rm.conf safe-rm"
 
 
 [applescript]: https://en.wikipedia.org/wiki/AppleScript
+[rm]: https://en.wikipedia.org/wiki/Rm_(Unix)
+[safe-rm]: https://github.com/kaelzhang/shell-safe-rm

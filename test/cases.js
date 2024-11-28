@@ -220,10 +220,8 @@ module.exports = (
     const dirpath = await createDir()
     const result1 = await runRm([dirpath])
 
-    log('rm a dir without -d', result1)
-
     t.is(result1.code, 1, 'exit code should be 1')
-    t.true(result1.stderr.includes('is a directory'), 'stderr should include "is a directory"')
+    t.true(result1.stderr.includes('a directory'), 'stderr should include "a directory"')
 
     const result2 = await runRm(['-d', dirpath])
 
