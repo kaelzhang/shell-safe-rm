@@ -2,4 +2,4 @@ const test = require('ava')
 
 const factory = require('./cases')
 
-factory(test, 'safe-rm')
+factory(test, 'safe-rm', true)

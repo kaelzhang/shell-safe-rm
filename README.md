@@ -12,7 +12,7 @@
 
 [![Build Status](https://github.com/kaelzhang/shell-safe-rm/actions/workflows/nodejs.yml/badge.svg)](https://github.com/kaelzhang/shell-safe-rm/actions/workflows/nodejs.yml)
 
-[Safe-rm][safe-rm], a much safer replacement of [`rm`][rm] with **ALMOST FULL** features of the origin [`rm`][rm] command.
+[Safe-rm][safe-rm], a drop-in and much safer replacement of the unix [`rm`][rm] command with **ALMOST FULL** features of the original [`rm`][rm].
 
 The project was initially developed for Mac OS X, and then tested on Linux.
 

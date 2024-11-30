@@ -1,7 +1,6 @@
 const path = require('path')
 const {v4: uuid} = require('uuid')
 const delay = require('delay')
-const log = require('util').debuglog('safe-rm')
 
 const {
   generateContextMethods,
@@ -9,15 +8,13 @@ const {
   IS_MACOS
 } = require('./helper')
 
-
 module.exports = (
   test,
   des_prefix,
-  test_trash_dir = true,
+  test_trash_dir,
   rm_command,
   env = {}
 ) => {
-
   // Setup before each test
   test.beforeEach(generateContextMethods(rm_command, env))
 
@@ -43,7 +40,8 @@ module.exports = (
 
     t.is(files.length, 1, 'should be one in the trash')
     t.is(
-      path.basename(files[0]), path.basename(filepath),
+      path.basename(files[0]),
+      path.basename(filepath),
       'file name should match'
     )
   })
@@ -95,7 +93,6 @@ module.exports = (
         return
       }
 
-
       const files = (await lsFileInTrash(full_name))
       .sort((a, b) => a.length - b.length)
 
@@ -120,6 +117,7 @@ module.exports = (
         t.true(files.every(f => f.endsWith(ext)), 'should have the same ext')
 
         t.is(fb1, filename)
+        t.is(fbs1[0], filename)
         t.is(fbs2[0], filename)
         t.is(fbs3[0], filename)
 
@@ -136,7 +134,7 @@ module.exports = (
         for (const file of files) {
           const match = file.match(re)
           const n = match[2]
-            ? parseInt(match[2])
+            ? parseInt(match[2], 10)
             : 0
 
           const f = file.slice(0, match.index)
@@ -184,10 +182,7 @@ module.exports = (
   test(`${des_prefix}: #22 exit code with -f option`, async t => {
     const {
       source_path,
-      createFile,
-      runRm,
-      pathExists,
-      lsFileInTrash
+      runRm
     } = t.context
 
     const filepath = path.join(source_path, uuid())
