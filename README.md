@@ -115,23 +115,48 @@ sudo sh uninstall.sh
 
 ## Configuration
 
-Since 2.0.0, you could create a configuration file named `.safe-rm.conf` in your HOME directory, to support
+Since 2.0.0, you could create a configuration file named `.safe-rm.conf` in your `$HOME` directory, to support
 - defining your custom trash directory
 - allowing `safe-rm` to permanently delete files and directories that are already in the trash
 - disallowing `safe-rm` to use [AppleScript][applescript]
 
 For the description of each config, you could refer to the sample file [here](./sample.safe-rm.conf)
 
+```sh
+# You could
+cp ./sample.safe-rm.conf ~/.safe-rm.conf
+```
+
 If you want to use a custom configuration file
 
 ```sh
-alias="SAFE_RM_CONF=/path/to/safe-rm.conf /path/to/bin/rm.sh"
+alias="SAFE_RM_CONF=/path/to/safe-rm.conf /path/to/shell-safe-rm/bin/rm.sh"
 ```
 
 Or if it is installed by npm:
 
 ```sh
 alias="SAFE_RM_CONF=/path/to/safe-rm.conf safe-rm"
+```
+
+### Disable `Put-back` Functionality on MacOS (MacOS only)
+
+In `~/.safe-rm.conf`
+
+```sh
+export SAFE_RM_USE_APPLESCRIPT=no
+```
+
+### Change the Default Trach Bin Other Than System Default
+
+```sh
+export SAFE_RM_TRASH=/path/to/trash
+```
+
+### Permanent Delete Files or Directories that Are Already in the Trash
+
+```sh
+export SAFE_RM_PERM_DEL_FILES_IN_TRASH=yes
 ```
 
 
