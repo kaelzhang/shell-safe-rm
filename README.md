@@ -159,6 +159,48 @@ export SAFE_RM_TRASH=/path/to/trash
 export SAFE_RM_PERM_DEL_FILES_IN_TRASH=yes
 ```
 
+### Protect Files And Directories From Deleting
+
+If you want to protect some certain files or directories from deleting by mistake, you could first enable the configuration in your `~/.safe-rm.conf` by uncommenting the line below:
+
+```diff
+- # export SAFE_RM_PROTECTED_RULES="$HOME/.safe-rm.protected"
++ export SAFE_RM_PROTECTED_RULES="$HOME/.safe-rm.protected"
+```
+
+Then, a `~/.safe-rm.protected` file must be created, in the file, you could write [.gitignore rules](https://git-scm.com/docs/gitignore)
+
+If a path is matched by the rules that defined in `~/.safe-rm.protected`, the path will be protected and could not be deleted by `safe-rm`
+
+For example, in the `~/.safe-rm.protected`
+
+```.gitignore
+/path/to/be/protected
+```
+
+And when executing
+
+```sh
+$ safe-rm /path/to/be/protected           # or
+$ safe-rm /path/to/be/protected/foo       # or
+$ safe-rm -rf /path/to/be/protected/bar
+
+# An error will occur
+```
+
+But pay attention that, by adding the protected pattern above, if we:
+
+```sh
+$ safe-rm -rf /path/to
+```
+
+To keep the performance of `safe-rm` and avoid conducting unnecessary file system traversing, this would not prevent `/path/to/be/protected/foo` from removing.
+
+Something that you might also need to know:
+- Enabling this config requires `git` to be installed in your environment
+- Avoid adding `/` in the protected rules file, or everything will be protected
+- `SAFE_RM_PROTECTED_RULES` could target to any pathname you want
+
 
 [applescript]: https://en.wikipedia.org/wiki/AppleScript
 [rm]: https://en.wikipedia.org/wiki/Rm_(Unix)
