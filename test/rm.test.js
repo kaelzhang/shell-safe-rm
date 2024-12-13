@@ -1,5 +1,8 @@
 const test = require('ava')
 
-const factory = require('./cases')
+const run = require('./cases')
 
-factory(test, 'rm', false, '/bin/rm')
+run(test, {
+  type: 'rm',
+  command: '/bin/rm'
+})

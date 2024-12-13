@@ -1,8 +1,11 @@
 const test = require('ava')
 const home = require('home')
 
-const factory = require('./cases')
+const run = require('./cases')
 
-factory(test, 'safe-rm-as', false, undefined, {
-  SAFE_RM_TRASH: home.resolve('~/.Trash')
+run(test, {
+  type: 'safe-rm-as',
+  env: {
+    SAFE_RM_TRASH: home.resolve('~/.Trash')
+  }
 })

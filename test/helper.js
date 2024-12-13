@@ -6,7 +6,6 @@ const fse = require('fs-extra')
 const {v4: uuid} = require('uuid')
 const log = require('util').debuglog('safe-rm')
 
-const SAFE_RM_PATH = path.join(__dirname, '..', 'bin', 'rm.sh')
 const TEST_DIR = path.join(tmp.dirSync().name, 'safe-rm-tests')
 
 const IS_MACOS = process.platform === 'darwin'
@@ -14,8 +13,8 @@ const IS_MACOS = process.platform === 'darwin'
   && !process.env.SAFE_RM_DEBUG_LINUX
 
 const generateContextMethods = (
-  rm_command = SAFE_RM_PATH,
-  rm_command_env = {}
+  rm_command,
+  rm_command_env
 ) => async t => {
   const root_path = path.join(TEST_DIR, uuid())
   t.context.root = await fse.ensureDir(root_path)
@@ -25,13 +24,13 @@ const generateContextMethods = (
     ? rm_command_env.SAFE_RM_TRASH
     : path.join(root_path, 'trash')
 
-  const trash_path = t.context.trash_path = process.platform === 'darwin'
+  t.context.trash_path = process.platform === 'darwin'
     ? trash
     : path.join(trash, 'files')
 
   await Promise.all([
     fse.ensureDir(source_path),
-    fse.ensureDir(trash_path)
+    fse.ensureDir(t.context.trash_path)
   ])
 
   // Helper function to create a temporary directory

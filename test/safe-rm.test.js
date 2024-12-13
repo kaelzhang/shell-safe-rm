@@ -1,5 +1,7 @@
 const test = require('ava')
 
-const factory = require('./cases')
+const run = require('./cases')
 
-factory(test, 'safe-rm', true)
+run(test, {
+  type: 'safe-rm'
+})

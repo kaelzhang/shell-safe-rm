@@ -8,17 +8,30 @@ const {
   IS_MACOS
 } = require('./helper')
 
+const SAFE_RM_PATH = path.join(__dirname, '..', 'bin', 'rm.sh')
+
+const is_rm = type => type === 'rm'
+// const is_safe_rm = type => type === 'safe-rm'
+
+// Whether it is a test spec for AppleScript version of safe-rm
+const is_as = type => type === 'safe-rm-as'
+
+// We skip testing trash dir for vanilla rm
+const should_skip_test_trash_dir = type => is_rm(type) || is_as(type)
+
 module.exports = (
   test,
-  des_prefix,
-  test_trash_dir,
-  rm_command,
-  env = {}
+  {
+    type,
+    // test_trash_dir,
+    command = SAFE_RM_PATH,
+    env = {}
+  } = {}
 ) => {
   // Setup before each test
-  test.beforeEach(generateContextMethods(rm_command, env))
+  test.beforeEach(generateContextMethods(command, env))
 
-  test(`${des_prefix}: removes a single file`, async t => {
+  test(`removes a single file`, async t => {
     const {
       createFile,
       runRm,
@@ -32,7 +45,7 @@ module.exports = (
     t.is(result.code, 0, 'exit code should be 0')
     t.false(await pathExists(filepath), 'file should be removed')
 
-    if (!test_trash_dir) {
+    if (should_skip_test_trash_dir(type)) {
       return
     }
 
@@ -56,7 +69,7 @@ module.exports = (
       ? ` with ext "${ext}"`
       : ''
 
-    test(`${des_prefix}: removes multiple files of the same name${extra}`, async t => {
+    test(`removes multiple files of the same name${extra}`, async t => {
       const {
         createFile,
         runRm,
@@ -89,7 +102,7 @@ module.exports = (
       assertEmptySuccess(t, result3)
       t.false(await pathExists(filepath3), 'file 3 should be removed')
 
-      if (!test_trash_dir) {
+      if (should_skip_test_trash_dir(type)) {
         return
       }
 
@@ -151,7 +164,7 @@ module.exports = (
     })
   })
 
-  test(`${des_prefix}: removes a single file in trash permanently`, async t => {
+  test(`removes a single file in trash permanently`, async t => {
     const {
       trash_path,
       createFile,
@@ -170,7 +183,7 @@ module.exports = (
     assertEmptySuccess(t, result)
     t.false(await pathExists(filepath), 'file should be removed')
 
-    if (!test_trash_dir) {
+    if (should_skip_test_trash_dir(type)) {
       return
     }
 
@@ -179,7 +192,7 @@ module.exports = (
     t.is(files.length, 0, 'should be already removed')
   })
 
-  test(`${des_prefix}: #22 exit code with -f option`, async t => {
+  test(`#22 exit code with -f option`, async t => {
     const {
       source_path,
       runRm
@@ -205,7 +218,7 @@ module.exports = (
       }`)
   })
 
-  test(`${des_prefix}: removes an empty directory: -d`, async t => {
+  test(`removes an empty directory: -d`, async t => {
     const {
       createDir,
       runRm,
@@ -223,4 +236,24 @@ module.exports = (
     assertEmptySuccess(t, result2)
     t.false(await pathExists(dirpath), 'directory should be removed')
   })
+
+  // Only test for safe-rm
+  // !is_rm(type) && test(`protected rules`, async t => {
+  //   const {
+  //     createFile,
+  //     runRm,
+  //     pathExists
+  //   } = t.context
+
+  //   const filepath = await createFile()
+  //   const result = await runRm([filepath], {
+  //     env: {
+  //       SAFE_RM_PROTECTED: filepath
+  //     }
+  //   })
+
+  //   t.is(result.code, 1, 'exit code should be 1')
+  //   t.true(result.stderr.includes('protected'), 'stderr should include "protected"')
+  //   t.true(await pathExists(filepath), 'file should not be removed')
+  // })
 }
