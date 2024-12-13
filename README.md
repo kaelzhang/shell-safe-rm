@@ -161,11 +161,11 @@ export SAFE_RM_PERM_DEL_FILES_IN_TRASH=yes
 
 ### Protect Files And Directories From Deleting
 
-If you want to protect some certain files or directories from deleting by mistake, you could create a `.gitignore` under `~/.safe-rm/` in the file, you could write [.gitignore rules](https://git-scm.com/docs/gitignore)
+If you want to protect some certain files or directories from deleting by mistake, you could create a `.gitignore` file under the `"~/.safe-rm/"` directory, you could write [.gitignore rules](https://git-scm.com/docs/gitignore) inside the file.
 
-If a path is matched by the rules that defined in `~/.safe-rm.protected`, the path will be protected and could not be deleted by `safe-rm`
+If a path is matched by the rules that defined in `~/.safe-rm/.gitignore`, the path will be protected and could not be deleted by `safe-rm`
 
-For example, in the `~/.safe-rm/config`
+For example, in the `~/.safe-rm/.gitignore`
 
 ```.gitignore
 /path/to/be/protected
