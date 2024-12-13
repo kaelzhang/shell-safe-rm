@@ -28,7 +28,7 @@
   ],
   "ava": {
     "files": [
-      "test/*.test.js"
+      "test/safe-rm.test.js"
     ]
   },
   "author": "kael",

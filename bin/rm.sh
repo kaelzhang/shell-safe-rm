@@ -117,6 +117,8 @@ if [[ -n "$SAFE_RM_PROTECTED_RULES" ]]; then
     error "Protected rules file \"$SAFE_RM_PROTECTED_RULES\" does not exist"
     error "  please fix your configuration in \"$SAFE_RM_CONF\""
     do_exit $LINENO 1
+  else
+    debug "$LINENO: protected rules enabled: $SAFE_RM_PROTECTED_RULES"
   fi
 
   if command -v git &> /dev/null; then
@@ -468,7 +470,12 @@ is_protected(){
   # /path/to/foo -> path/to/foo
   local rel_path=${abs_path#/}
 
-  local ignored=$(echo "$rel_path" | git check-ignore --no-index --stdin -v --exclude-from="$SAFE_RM_PROTECTED_RULES" 2> /dev/null)
+  debug "$LINENO: check whether $rel_path is protected"
+  cat "$SAFE_RM_PROTECTED_RULES" >&2
+
+  local ignored=$(echo "$rel_path" | git check-ignore --no-index --stdin -v --exclude-from="$SAFE_RM_PROTECTED_RULES")
+
+  debug "$LINENO: git check-ignore result: $ignored"
 
   if [[ -n $ignored ]]; then
     return 0

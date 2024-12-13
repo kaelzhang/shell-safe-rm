@@ -34,16 +34,23 @@ const generateContextMethods = (
   ])
 
   // Helper function to create a temporary directory
-  async function createDir (dirname = uuid()) {
-    const dirpath = path.resolve(t.context.source_path, dirname)
+  async function createDir ({
+    name = uuid(),
+    under
+  } = {}) {
+    const dirpath = path.resolve(under || t.context.source_path, name)
     await fse.ensureDir(dirpath)
 
     return dirpath
   }
 
   // Helper function to create a temporary file
-  async function createFile (filename = uuid(), content = 'test content') {
-    const filepath = path.resolve(t.context.source_path, filename)
+  async function createFile ({
+    name = uuid(),
+    content = 'test content',
+    under
+  } = {}) {
+    const filepath = path.resolve(under || t.context.source_path, name)
     await fs.writeFile(filepath, content)
 
     return filepath

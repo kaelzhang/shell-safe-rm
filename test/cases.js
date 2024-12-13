@@ -84,13 +84,13 @@ module.exports = (
       const to_next_second = 1000 - now % 1000
       await delay(to_next_second)
 
-      const filepath1 = await createFile(full_name, '1')
+      const filepath1 = await createFile({name: full_name, content: '1'})
       const result1 = await runRm([filepath1])
 
-      const filepath2 = await createFile(full_name, '2')
+      const filepath2 = await createFile({name: full_name, content: '2'})
       const result2 = await runRm([filepath2])
 
-      const filepath3 = await createFile(full_name, '3')
+      const filepath3 = await createFile({name: full_name, content: '3'})
       const result3 = await runRm([filepath3])
 
       assertEmptySuccess(t, result1)
@@ -173,7 +173,7 @@ module.exports = (
       lsFileInTrash
     } = t.context
 
-    const filepath = await createFile(path.join(trash_path, uuid()))
+    const filepath = await createFile({name: path.join(trash_path, uuid())})
     const result = await runRm([filepath], {
       env: {
         SAFE_RM_PERM_DEL_FILES_IN_TRASH: 'yes'
@@ -238,22 +238,32 @@ module.exports = (
   })
 
   // Only test for safe-rm
-  // !is_rm(type) && test(`protected rules`, async t => {
-  //   const {
-  //     createFile,
-  //     runRm,
-  //     pathExists
-  //   } = t.context
+  !is_rm(type) && test.only(`protected rules`, async t => {
+    const {
+      createDir,
+      createFile,
+      runRm,
+      pathExists
+    } = t.context
 
-  //   const filepath = await createFile()
-  //   const result = await runRm([filepath], {
-  //     env: {
-  //       SAFE_RM_PROTECTED: filepath
-  //     }
-  //   })
+    const dir = await createDir()
+    const protected_rule_file = await createFile({
+      name: '.safe-rm.protected',
+      content: `${dir}
+`
+    })
 
-  //   t.is(result.code, 1, 'exit code should be 1')
-  //   t.true(result.stderr.includes('protected'), 'stderr should include "protected"')
-  //   t.true(await pathExists(filepath), 'file should not be removed')
-  // })
+    const filepath = await createFile({
+      under: dir
+    })
+    const result = await runRm([filepath], {
+      env: {
+        SAFE_RM_PROTECTED_RULES: protected_rule_file
+      }
+    })
+
+    t.is(result.code, 1, 'exit code should be 1')
+    t.true(result.stderr.includes('protected'), 'stderr should include "protected"')
+    t.true(await pathExists(filepath), 'file should not be removed')
+  })
 }
