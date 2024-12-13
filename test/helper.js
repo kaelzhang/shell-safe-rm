@@ -64,7 +64,7 @@ const generateContextMethods = (
   } = {}) {
     return new Promise(resolve => {
       const env = {
-        ...process.env,
+        // ...process.env,
         ...{
           SAFE_RM_TRASH: t.context.trash_path
         },
