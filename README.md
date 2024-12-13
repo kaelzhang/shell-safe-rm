@@ -192,8 +192,8 @@ $ safe-rm -rf /path/to
 To keep the performance of `safe-rm` and avoid conducting unnecessary file system traversing, this would not prevent `/path/to/be/protected/foo` from removing.
 
 Pay **ATTENTION** that:
-- Before adding protected rules, i.e. placing the `.gitignore` inside the `"~/.safe-rm/"` directory, it requires `git` to be installed in your environment
-- The protected rules file applies to the root directory (/), which This means that the patterns defined within it need to be relative to the root directory.
+- Before adding protected rules, i.e. placing the `".gitignore"` inside the `"~/.safe-rm/"` directory, it requires `git` to be installed in your environment
+- The `".gitignore"` patterns apply to the root directory (`"/"`), which means that the patterns defined within it need to be relative to the root directory.
 - Avoid adding `/` in the protected rules file, or everything will be protected
 
 
