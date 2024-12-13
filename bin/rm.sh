@@ -125,11 +125,11 @@ if [[ -f "$SAFE_RM_PROTECTED_RULES" ]]; then
       :
     else
       error "[WARNING] safe-rm requires a git repository to use protected rules"
-      error "initializing a git repository in \"$SAFE_RM_CONFIG_ROOT\" ..."
+      error "Initializing a git repository in \"$SAFE_RM_CONFIG_ROOT\" ..."
 
       git -C "$SAFE_RM_CONFIG_ROOT" init -q
 
-      error "success"
+      error "Success"
     fi
   else
     error "[WARNING] safe-rm requires git installed to use protected rules"
