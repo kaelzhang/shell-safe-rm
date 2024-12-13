@@ -32,4 +32,4 @@
 #   - put the .gitignore file in a different directory other than `~/.safe-rm/`
 # Uncomment the line after divider `-----`
 # -----------------------------------------------
-# export SAFE_RM_CONFIG_ROOT=/path/to/config/root
+# export SAFE_RM_CONFIG_ROOT=/usr/local/etc/safe-rm

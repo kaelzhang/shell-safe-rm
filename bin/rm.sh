@@ -492,13 +492,12 @@ is_protected(){
   local rel_path=${abs_path#/}
 
   debug "$LINENO: check whether $rel_path is protected"
-  cat "$SAFE_RM_PROTECTED_RULES" >&2
 
-  local ignored=$(git -C "$SAFE_RM_CONFIG_ROOT" check-ignore --no-index -v "$rel_path")
+  local ignored=$(git -C "$SAFE_RM_CONFIG_ROOT" check-ignore -v --no-index "$rel_path")
 
   debug "$LINENO: git check-ignore result: $ignored"
 
-  if [[ -n $ignored ]]; then
+  if [[ -n "$ignored" ]]; then
     return 0
   else
     return 1
