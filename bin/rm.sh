@@ -110,6 +110,25 @@ else
   fi
 fi
 
+
+if [[ -n "$SAFE_RM_PROTECTED_RULES" ]]; then
+  # But if it is not a file
+  if [[ ! -f "$SAFE_RM_PROTECTED_RULES" ]]; then
+    error "Protected rules file \"$SAFE_RM_PROTECTED_RULES\" does not exist"
+    error "  please fix your configuration in \"$SAFE_RM_CONF\""
+    do_exit $LINENO 1
+  fi
+
+  if command -v git &> /dev/null; then
+    :
+  else
+    error "safe-rm requires git installed to use protected rules"
+    error "  please disable protected rules in \"$SAFE_RM_CONF\""
+    error "  or install git"
+    do_exit $LINENO 1
+  fi
+fi
+
 # ------------------------------------------------------------------------------
 
 # Simple basename: /bin/rm -> rm
@@ -144,6 +163,7 @@ if [[ "$#" == 0 ]]; then
   echo "safe-rm"
   usage
 fi
+
 
 ARG_END=
 FILE_NAME=
@@ -355,7 +375,7 @@ remove(){
       # The file
       # - is a symbolic link
       # - is a file
-      # - does not existx
+      # - does not exist
       trash "$file"
       debug "$LINENO: trash returned status $?"
     fi
@@ -409,14 +429,51 @@ trash(){
 
 
 do_trash(){
-  debug "$LINENO: trash $1"
+  local target=$1
+
+  debug "$LINENO: trash $target"
+
+  if is_protected "$target"; then
+    error "\"$target\" is protected by your configuration"
+    return 1
+  fi
 
   if [[ -n $SAFE_RM_USE_APPLESCRIPT ]]; then
-    applescript_trash "$1"
+    applescript_trash "$target"
   elif [[ "$OS_TYPE" == "MacOS" ]]; then
-    mac_trash "$1"
+    mac_trash "$target"
   else
-    linux_trash "$1"
+    linux_trash "$target"
+  fi
+}
+
+
+get_absolute_path(){
+  echo $(cd "$(dirname "$1")" && pwd)/$(basename "$1")
+}
+
+
+# Returns
+# - 0: the target is protected
+# - 1: the target is not protected
+is_protected(){
+  if [[ ! -n $SAFE_RM_PROTECTED_RULES ]]; then
+    # If no protected rules are set, the target is not protected
+    return 1
+  fi
+
+  local target=$1
+  local abs_path=$(get_absolute_path "$target")
+
+  # /path/to/foo -> path/to/foo
+  local rel_path=${abs_path#/}
+
+  local ignored=$(echo "$rel_path" | git check-ignore --no-index --stdin -v --exclude-from="$SAFE_RM_PROTECTED_RULES" 2> /dev/null)
+
+  if [[ -n $ignored ]]; then
+    return 0
+  else
+    return 1
   fi
 }
 
@@ -523,6 +580,9 @@ mac_trash(){
 }
 
 
+# Check if the base name already exists in the trash
+# If it does, foo -> foo.1
+# If foo.1 exists, foo.1 -> foo.2
 check_linux_trash_base(){
   local base=$1
   local trash="$SAFE_RM_TRASH/files"

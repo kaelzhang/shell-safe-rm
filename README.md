@@ -198,6 +198,7 @@ To keep the performance of `safe-rm` and avoid conducting unnecessary file syste
 
 Something that you might also need to know:
 - Enabling this config requires `git` to be installed in your environment
+- The protected rules file applies to the root directory (/), which This means that the patterns defined within it need to be relative to the root directory.
 - Avoid adding `/` in the protected rules file, or everything will be protected
 - `SAFE_RM_PROTECTED_RULES` could target to any pathname you want
 
