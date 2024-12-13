@@ -147,6 +147,8 @@ In `~/.safe-rm/config`
 export SAFE_RM_USE_APPLESCRIPT=no
 ```
 
+By default, on MacOS, `safe-rm` uses AppleScript as much as possible so that removed files could be put back from system Trash app.
+
 ### Change the Default Trach Bin Other Than System Default
 
 ```sh
