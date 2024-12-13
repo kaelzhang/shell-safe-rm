@@ -3,18 +3,19 @@
 # Basic configuration
 # ------------------------------------------------------------------------------
 
-DEFAULT_SAFE_RM_CONF="$HOME/.safe-rm.conf"
+DEFAULT_SAFE_RM_CONFIG="$HOME/.safe-rm/config"
 
 # You could modify the location of the configuration file by using
 # ```sh
-# $ export SAFE_RM_CONF=/path/to/safe-rm.conf
+# $ export SAFE_RM_CONFIG=/path/to/safe-rm.conf
 # ```
-SAFE_RM_CONF=${SAFE_RM_CONF:="$DEFAULT_SAFE_RM_CONF"}
+SAFE_RM_CONFIG=${SAFE_RM_CONFIG:="$DEFAULT_SAFE_RM_CONFIG"}
 
-if [[ -f "$SAFE_RM_CONF" ]]; then
-  source "$SAFE_RM_CONF"
+if [[ -f "$SAFE_RM_CONFIG" ]]; then
+  source "$SAFE_RM_CONFIG"
 fi
 
+SAFE_RM_CONFIG_ROOT=${SAFE_RM_CONFIG_ROOT:="$HOME/.safe-rm"}
 
 # Print debug info or not
 SAFE_RM_DEBUG=${SAFE_RM_DEBUG:=}
@@ -78,7 +79,7 @@ SAFE_RM_TRASH=${SAFE_RM_TRASH:="$DEFAULT_TRASH"}
 
 if [[ "$OS_TYPE" == "MacOS" ]]; then
   if command -v osascript &> /dev/null; then
-    # `SAFE_RM_USE_APPLESCRIPT=no` in your SAFE_RM_CONF file
+    # `SAFE_RM_USE_APPLESCRIPT=no` in your SAFE_RM_CONFIG file
     #   to disable AppleScript
     if [[ "$SAFE_RM_USE_APPLESCRIPT" == "no" ]]; then
       debug "$LINENO: applescript disabled by conf"
@@ -111,25 +112,35 @@ else
 fi
 
 
-if [[ -n "$SAFE_RM_PROTECTED_RULES" ]]; then
-  # But if it is not a file
-  if [[ ! -f "$SAFE_RM_PROTECTED_RULES" ]]; then
-    error "Protected rules file \"$SAFE_RM_PROTECTED_RULES\" does not exist"
-    error "  please fix your configuration in \"$SAFE_RM_CONF\""
-    do_exit $LINENO 1
-  else
-    debug "$LINENO: protected rules enabled: $SAFE_RM_PROTECTED_RULES"
-  fi
+SAFE_RM_PROTECTED_RULES="${SAFE_RM_CONFIG_ROOT}/.gitignore"
 
+debug $SAFE_RM_PROTECTED_RULES
+
+# But if it is not a file
+if [[ -f "$SAFE_RM_PROTECTED_RULES" ]]; then
   if command -v git &> /dev/null; then
-    :
+    debug "$LINENO: protected rules enabled: $SAFE_RM_PROTECTED_RULES"
+
+    if git -C "$SAFE_RM_CONFIG_ROOT" rev-parse --is-inside-work-tree &> /dev/null; then
+      :
+    else
+      error "[WARNING] safe-rm requires a git repository to use protected rules"
+      error "initializing a git repository in \"$SAFE_RM_CONFIG_ROOT\" ..."
+
+      git -C "$SAFE_RM_CONFIG_ROOT" init -q
+
+      error "success"
+    fi
   else
-    error "safe-rm requires git installed to use protected rules"
-    error "  please disable protected rules in \"$SAFE_RM_CONF\""
-    error "  or install git"
-    do_exit $LINENO 1
+    error "[WARNING] safe-rm requires git installed to use protected rules"
+    error "  please install git"
+    error "  or remove the file \"$SAFE_RM_PROTECTED_RULES\""
+    SAFE_RM_PROTECTED_RULES=
   fi
+else
+  SAFE_RM_PROTECTED_RULES=
 fi
+
 
 # ------------------------------------------------------------------------------
 
@@ -321,6 +332,14 @@ if [[ ! -e $SAFE_RM_TRASH ]]; then
 fi
 
 
+check_return_status(){
+  local status=$?
+  if [[ $status -ne "0" ]]; then
+    debug "$LINENO: last command returned status $status"
+    EXIT_CODE=$status
+  fi
+}
+
 # try to remove a file or directory
 remove(){
   local file=$1
@@ -427,6 +446,8 @@ trash(){
   else
     do_trash "$target"
   fi
+
+  check_return_status
 }
 
 
@@ -473,7 +494,7 @@ is_protected(){
   debug "$LINENO: check whether $rel_path is protected"
   cat "$SAFE_RM_PROTECTED_RULES" >&2
 
-  local ignored=$(echo "$rel_path" | git check-ignore --no-index --stdin -v --exclude-from="$SAFE_RM_PROTECTED_RULES")
+  local ignored=$(git -C "$SAFE_RM_CONFIG_ROOT" check-ignore --no-index -v "$rel_path")
 
   debug "$LINENO: git check-ignore result: $ignored"
 

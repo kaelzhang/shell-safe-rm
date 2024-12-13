@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # This is a sample configuration file for safe-rm.
-# By default, you could copy this file to ~/.safe-rm.conf
+# By default, you could copy this file to ~/.safe-rm/config
 
 #
 # If you want to use a trash directory other than the default system trash,
@@ -28,16 +28,8 @@
 # export SAFE_RM_USE_APPLESCRIPT=no
 
 #
-# If you want to protect some files or directories from being removed by
-#   safe-rm:
-#   - Uncomment the line after divider `-----`
-#   - Create a file at the path specified by SAFE_RM_PROTECTED_RULES, such as
-#       `~/.safe-rm.protected`
-#   - Add the rules to the file, one rule per line, the rule follows the #       .gitingore syntax (https://git-scm.com/docs/gitignore). If a file or
-#       directory ignores by the rules, it will not be removed by safe-rm.
-# ATTENTION that
-#   - Before enabling this feature, `git` must be installed.
-#   - It is unnecessary to put `/` in the protected rules. And you also should
-#       NOT do so, or all files will be protected.
+# If you want to change the configuration root directory of safe-rm, in order to
+#   - put the .gitignore file in a different directory other than `~/.safe-rm/`
+# Uncomment the line after divider `-----`
 # -----------------------------------------------
-# export SAFE_RM_PROTECTED_RULES="$HOME/.safe-rm.protected"
+# export SAFE_RM_CONFIG_ROOT=/path/to/config/root

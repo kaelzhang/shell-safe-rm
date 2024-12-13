@@ -238,7 +238,7 @@ module.exports = (
   })
 
   // Only test for safe-rm
-  !is_rm(type) && test.only(`protected rules`, async t => {
+  !is_rm(type) && test(`protected rules`, async t => {
     const {
       createDir,
       createFile,
@@ -246,19 +246,25 @@ module.exports = (
       pathExists
     } = t.context
 
+    const config_root = await createDir({
+      name: '.safe-rm'
+    })
+
     const dir = await createDir()
-    const protected_rule_file = await createFile({
-      name: '.safe-rm.protected',
+    const filepath = await createFile({
+      under: dir
+    })
+
+    await createFile({
+      name: '.gitignore',
+      under: config_root,
       content: `${dir}
 `
     })
 
-    const filepath = await createFile({
-      under: dir
-    })
     const result = await runRm([filepath], {
       env: {
-        SAFE_RM_PROTECTED_RULES: protected_rule_file
+        SAFE_RM_CONFIG_ROOT: config_root
       }
     })
 
