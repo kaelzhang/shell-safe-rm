@@ -14,7 +14,7 @@
 
 [Safe-rm][safe-rm], a drop-in and much safer replacement of the unix [`rm`][rm] command with **ALMOST FULL** features of the original [`rm`][rm].
 
-The project was initially developed for Mac OS X, and then tested on Linux.
+The project was initially developed on Mac OS X and has been continuously used by myself since then, with later testing conducted on Linux. If you encounter any issues during use, please feel free to [submit an issue](https://github.com/kaelzhang/shell-safe-rm/issues/new).
 
 ## Features
 - Supports both MacOS and Linux with full test coverage.
