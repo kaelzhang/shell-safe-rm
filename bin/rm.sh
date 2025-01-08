@@ -3,19 +3,26 @@
 # Basic configuration
 # ------------------------------------------------------------------------------
 
-DEFAULT_SAFE_RM_CONFIG="$HOME/.safe-rm/config"
+# You could modify the root config directory of safe-rm by using
+# ```sh
+# $ export SAFE_RM_CONFIG_ROOT=/path/to/safe-rm-config
+# ```
+if [[ -n $XDG_CONFIG_HOME && -d "$XDG_CONFIG_HOME/safe-rm" ]]; then
+  # If XDG_CONFIG_HOME is set, use it as the configuration root
+  SAFE_RM_CONFIG_ROOT=${SAFE_RM_CONFIG_ROOT:="$XDG_CONFIG_HOME/safe-rm"}
+else
+  SAFE_RM_CONFIG_ROOT=${SAFE_RM_CONFIG_ROOT:="$HOME/.safe-rm"}
+fi
 
 # You could modify the location of the configuration file by using
 # ```sh
 # $ export SAFE_RM_CONFIG=/path/to/safe-rm.conf
 # ```
-SAFE_RM_CONFIG=${SAFE_RM_CONFIG:="$DEFAULT_SAFE_RM_CONFIG"}
+SAFE_RM_CONFIG=${SAFE_RM_CONFIG:="$SAFE_RM_CONFIG_ROOT/config"}
 
 if [[ -f "$SAFE_RM_CONFIG" ]]; then
   source "$SAFE_RM_CONFIG"
 fi
-
-SAFE_RM_CONFIG_ROOT=${SAFE_RM_CONFIG_ROOT:="$HOME/.safe-rm"}
 
 # Print debug info or not
 SAFE_RM_DEBUG=${SAFE_RM_DEBUG:=}
