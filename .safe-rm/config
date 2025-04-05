@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This is a sample configuration file for safe-rm.
 # By default, you could copy this file to ~/.safe-rm/config
