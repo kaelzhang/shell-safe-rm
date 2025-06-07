@@ -316,7 +316,7 @@ for arg in ${ARG[@]}; do
   -p|--permanently)
     # permanently delete files
     rm ${ARG[@]/$arg} ${FILE_NAME[*]}
-    debug "$LINENO: permanently delete files: ${FILE_NAME[*]}"
+    debug "$LINENO: permanently: rm ${ARG[@]/$arg} ${FILE_NAME[*]}"
     do_exit $LINENO 0
     #rm $@ && do_exit $LINENO 0
     ;;
