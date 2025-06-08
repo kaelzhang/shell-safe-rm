@@ -35,6 +35,7 @@ For those implemented options, safe-rm will act **exactly the same** as the orig
 | `-r`, `-R`, `--recursive`, `--Recursive` | **Recursive** | Removes directories and their contents recursively. Required for deleting directories |
 | `-v`, `--verbose` | **Verbose** | Displays detailed information about each file or directory being removed |
 | `-d`, '--directory' | **Remove Empty Directories** | `safe-rm` can check and only remove empty directories specifically with this flag |
+| `-p`, '--permanently' | **Permanently remove** | Permanently remove files like in traditional `rm` |
 | `--` | **End of Options** | Used to indicate the end of options. Useful if a filename starts with a `-` |
 
 Combined short options are also supported, such as
