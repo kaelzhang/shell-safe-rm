@@ -43,7 +43,7 @@ debug(){
 
 
 error(){
-  echo $@ >&2
+  echo "$@" >&2
 }
 
 
@@ -434,7 +434,9 @@ recursive_remove(){
   # never use `find $1`, for the searching order is not what we want
   local list=$(ls -A "$1")
 
-  [[ -n $list ]] && for path in "$list"; do
+  [[ -n $list ]] && for path in $list; do
+    debug "$LINENO: recursively remove: $1/$path"
+
     remove "$1/$path"
   done
 }
@@ -630,7 +632,7 @@ check_linux_trash_base(){
     local num=
 
     while IFS= read -r file; do
-      if [[ $file =~ ${filename}\.([0-9]+)$ ]]; then
+      if [[ $file =~ ${base}\.([0-9]+)$ ]]; then
           # Remove leading zeros and make sure the number is in base 10
           num=$((10#${BASH_REMATCH[1]}))
           if ((num > max_n)); then
@@ -688,7 +690,7 @@ list_files(){
     local list=$(ls -A "$1")
     local f
 
-    [[ -n $list ]] && for f in "$list"; do
+    [[ -n $list ]] && for f in $list; do
       list_files "$1/$f"
     done
   fi
