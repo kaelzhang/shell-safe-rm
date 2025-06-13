@@ -300,7 +300,6 @@ for arg in ${ARG[@]}; do
     OPT_INTERACTIVE_ONCE=1;  debug "$LINENO: interactive_once  : $arg"
     OPT_INTERACTIVE=;
     ;;
-
   # both r and R is allowed
   -[rR]|--[rR]ecursive)
     OPT_RECURSIVE=1;    debug "$LINENO: recursive    : $arg"
@@ -313,6 +312,13 @@ for arg in ${ARG[@]}; do
 
   -d|--directory)
     OPT_EMPTY_DIR=1;    debug "$LINENO: empty dir    : $arg"
+    ;;
+  -p|--permanently)
+    # permanently delete files
+    rm ${ARG[@]/$arg} ${FILE_NAME[*]}
+    debug "$LINENO: permanently: rm ${ARG[@]/$arg} ${FILE_NAME[*]}"
+    do_exit $LINENO 0
+    #rm $@ && do_exit $LINENO 0
     ;;
 
   *)
