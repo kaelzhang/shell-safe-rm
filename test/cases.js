@@ -312,6 +312,7 @@ remove ${dir}? y
 `,
       'stdout does not match'
     )
-    // t.false(await pathExists(dir), 'directory should be removed')
+
+    t.false(await pathExists(dir), 'directory should be removed')
   })
 }
