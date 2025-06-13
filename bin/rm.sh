@@ -389,6 +389,8 @@ remove(){
         read answer
         if [[ ${answer:0:1} =~ [yY] ]]; then
           [[ $(ls -A "$file") ]] && {
+            debug "$LINENO: $file: Directory not empty: $(ls -A "$file")"
+
             echo "$COMMAND: $file: Directory not empty"
 
             return 1

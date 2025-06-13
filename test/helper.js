@@ -58,13 +58,13 @@ const generateContextMethods = (
 
   // Helper function to run rm commands
   function runRm (args, {
-    input = '',
+    input = [],
     command = rm_command,
     env: arg_env = {}
   } = {}) {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       const env = {
-        // ...process.env,
+        ...process.env,
         ...{
           SAFE_RM_TRASH: t.context.trash_path
         },
@@ -80,20 +80,32 @@ const generateContextMethods = (
 
       child.stdout.on('data', data => {
         stdout += data.toString()
+
+        if (/\?\s*$/.test(stdout)) {
+          if (!child.stdin) {
+            reject(new Error('Child process does not support stdin'))
+            return
+          }
+
+          const this_input = input.shift()
+
+          if (!this_input) {
+            reject(new Error('Need more input'))
+            return
+          }
+
+          child.stdin.write(`${this_input}\n`)
+          stdout += `${this_input}\n`
+
+          if (input.length === 0) {
+            child.stdin.end()
+          }
+        }
       })
 
       child.stderr.on('data', data => {
         stderr += data.toString()
       })
-
-      if (input) {
-        if (!child.stdin) {
-          throw new Error('Child process does not support stdin')
-        }
-
-        child.stdin.write(input)
-        child.stdin.end()
-      }
 
       child.on('close', code => {
         const resolved = {
@@ -105,6 +117,7 @@ const generateContextMethods = (
         log(command, 'result:', resolved)
 
         resolve(resolved)
+        child.kill()
       })
     })
   }

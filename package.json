@@ -6,7 +6,9 @@
     "safe-rm": "./bin/rm.sh"
   },
   "scripts": {
-    "test": "ava --timeout=10s --verbose",
+    "test:rm": "ava --timeout=10s --verbose test/safe-rm.test.js",
+    "test:as": "ava --timeout=10s --verbose test/safe-rm-as.test.js",
+    "test": "npm run test:rm && npm run test:as",
     "test:dev": "NODE_DEBUG=safe-rm npm run test",
     "test:debug": "SAFE_RM_DEBUG=1 npm run test:dev",
     "test:mock-linux": "SAFE_RM_DEBUG_LINUX=1 npm run test",

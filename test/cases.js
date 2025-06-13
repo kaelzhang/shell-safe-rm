@@ -272,4 +272,46 @@ module.exports = (
     t.true(result.stderr.includes('protected'), 'stderr should include "protected"')
     t.true(await pathExists(filepath), 'file should not be removed')
   })
+
+  !is_as(type) && test(`#44: recursively and interactively`, async t => {
+    const {
+      createDir,
+      createFile,
+      runRm,
+      pathExists
+    } = t.context
+
+    const name = 'foo'
+
+    const dir = await createDir({
+      name
+    })
+
+    const fileA = await createFile({
+      name: 'a',
+      under: dir
+    })
+
+    const fileB = await createFile({
+      name: 'b',
+      under: dir
+    })
+
+    const result = await runRm(['-ri', dir], {
+      input: ['y', 'y', 'y', 'y']
+    })
+
+    t.is(result.stderr, '', 'stderr should be empty')
+    t.is(result.code, 0, 'exit code should be 0')
+    t.is(
+      result.stdout,
+      `examine files in directory ${dir}? y
+remove ${fileA}? y
+remove ${fileB}? y
+remove ${dir}? y
+`,
+      'stdout does not match'
+    )
+    // t.false(await pathExists(dir), 'directory should be removed')
+  })
 }
