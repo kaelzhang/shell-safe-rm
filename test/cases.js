@@ -316,7 +316,9 @@ remove ${dir}? y
     t.false(await pathExists(dir), 'directory should be removed')
   })
 
-  !is_as(type) && test(`#47: recursively and interactively with spaces`, async t => {
+  !is_as(type) && test(`recursively and interactively with spaces`, async t => {
+    // Regression guard: recursive interactive remove must keep "a b"
+    // as one path and still remove the directory successfully.
     const {
       createDir,
       createFile,

@@ -434,8 +434,10 @@ recursive_remove(){
   local restore_nullglob=$(shopt -p nullglob)
   local restore_dotglob=$(shopt -p dotglob)
 
-  # Use glob expansion with arrays, so names containing spaces are treated as one path.
-  # Also enable dotglob to include hidden files but still exclude "." and "..".
+  # Avoid `ls -A` + unquoted `for` iteration, which splits names by IFS
+  # and breaks paths containing spaces (e.g. "a b" -> "a" + "b").
+  # Use glob expansion with arrays to keep each entry as one element.
+  # dotglob includes hidden files, nullglob avoids a literal "$dir/*" token.
   shopt -s nullglob dotglob
   local list=("$dir"/*)
   eval "$restore_nullglob"
@@ -619,6 +621,7 @@ mac_trash(){
 
   [[ "$_traveled" == 1 ]] && cd "$__DIRNAME" &> /dev/null
 
+  # Propagate mv status; otherwise callers may treat move failures as success.
   return $status
 }
 
@@ -676,6 +679,7 @@ linux_trash(){
   local move_status=$?
 
   if [[ $move_status -ne 0 ]]; then
+    # Keep failure visible to remove()/EXIT_CODE and skip writing .trashinfo.
     [[ "$_traveled" == 1 ]] && cd "$__DIRNAME" &> /dev/null
     return $move_status
   fi
@@ -703,6 +707,8 @@ list_files(){
   if [[ -d "$1" ]]; then
     local restore_nullglob=$(shopt -p nullglob)
     local restore_dotglob=$(shopt -p dotglob)
+    # Keep traversal behavior aligned with recursive_remove(): no word splitting
+    # for names with spaces, and include dotfiles for rm -v output.
     shopt -s nullglob dotglob
     local list=("$1"/*)
     eval "$restore_nullglob"
