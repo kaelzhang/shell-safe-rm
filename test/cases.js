@@ -315,4 +315,45 @@ remove ${dir}? y
 
     t.false(await pathExists(dir), 'directory should be removed')
   })
+
+  !is_as(type) && test(`#47: recursively and interactively with spaces`, async t => {
+    const {
+      createDir,
+      createFile,
+      runRm,
+      pathExists
+    } = t.context
+
+    const dir = await createDir({
+      name: 'foo'
+    })
+
+    const fileA = await createFile({
+      name: 'a b',
+      under: dir
+    })
+
+    const fileB = await createFile({
+      name: 'c',
+      under: dir
+    })
+
+    const result = await runRm(['-ri', dir], {
+      input: ['y', 'y', 'y', 'y']
+    })
+
+    t.is(result.stderr, '', 'stderr should be empty')
+    t.is(result.code, 0, 'exit code should be 0')
+    t.is(
+      result.stdout,
+      `examine files in directory ${dir}? y
+remove ${fileA}? y
+remove ${fileB}? y
+remove ${dir}? y
+`,
+      'stdout does not match'
+    )
+
+    t.false(await pathExists(dir), 'directory should be removed')
+  })
 }

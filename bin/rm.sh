@@ -429,17 +429,22 @@ remove(){
 
 
 recursive_remove(){
+  local dir=$1
   local path
+  local restore_nullglob=$(shopt -p nullglob)
+  local restore_dotglob=$(shopt -p dotglob)
 
-  # use `ls -A` instead of `for` to list hidden files.
-  # and `for $1/*` is also weird if `$1` is neithor a dir nor existing that will print "$1/*" directly and rudely.
-  # never use `find $1`, for the searching order is not what we want
-  local list=$(ls -A "$1")
+  # Use glob expansion with arrays, so names containing spaces are treated as one path.
+  # Also enable dotglob to include hidden files but still exclude "." and "..".
+  shopt -s nullglob dotglob
+  local list=("$dir"/*)
+  eval "$restore_nullglob"
+  eval "$restore_dotglob"
 
-  [[ -n $list ]] && for path in $list; do
-    debug "$LINENO: recursively remove: $1/$path"
+  for path in "${list[@]}"; do
+    debug "$LINENO: recursively remove: $path"
 
-    remove "$1/$path"
+    remove "$path"
   done
 }
 
@@ -610,11 +615,11 @@ mac_trash(){
 
   debug "$LINENO: mv $move to $trash_path"
   mv "$move" "$trash_path"
+  local status=$?
 
-  [[ "$_traveled" == 1 ]] && cd $__DIRNAME &> /dev/null
+  [[ "$_traveled" == 1 ]] && cd "$__DIRNAME" &> /dev/null
 
-  # default status
-  return 0
+  return $status
 }
 
 
@@ -668,6 +673,12 @@ linux_trash(){
   # Move the target into the trash
   debug "$LINENO: mv $move to $trash_path"
   mv "$move" "$trash_path"
+  local move_status=$?
+
+  if [[ $move_status -ne 0 ]]; then
+    [[ "$_traveled" == 1 ]] && cd "$__DIRNAME" &> /dev/null
+    return $move_status
+  fi
 
   # Save linux trash info
   local info_path="$SAFE_RM_TRASH/info/$base.trashinfo"
@@ -677,10 +688,11 @@ linux_trash(){
 Path=$move
 DeletionDate=$trash_time
 EOF
+  local info_status=$?
 
-  [[ "$_traveled" == 1 ]] && cd $__DIRNAME &> /dev/null
+  [[ "$_traveled" == 1 ]] && cd "$__DIRNAME" &> /dev/null
 
-  return 0
+  return $info_status
 }
 
 
@@ -689,15 +701,20 @@ EOF
 #   'coz `find` act a inward searching, unlike rm -v
 list_files(){
   if [[ -d "$1" ]]; then
-    local list=$(ls -A "$1")
+    local restore_nullglob=$(shopt -p nullglob)
+    local restore_dotglob=$(shopt -p dotglob)
+    shopt -s nullglob dotglob
+    local list=("$1"/*)
+    eval "$restore_nullglob"
+    eval "$restore_dotglob"
     local f
 
-    [[ -n $list ]] && for f in $list; do
-      list_files "$1/$f"
+    for f in "${list[@]}"; do
+      list_files "$f"
     done
   fi
 
-  echo $1
+  echo "$1"
 }
 
 
