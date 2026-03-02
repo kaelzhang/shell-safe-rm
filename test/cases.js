@@ -447,4 +447,124 @@ fi
     t.false(await pathExists(link), 'symlink should be removed')
     t.true(await pathExists(target), 'target file should remain')
   })
+
+  !is_as(type) && test(`removes a dangling symlink`, async t => {
+    const {
+      source_path,
+      runRm
+    } = t.context
+
+    const missingTarget = path.join(source_path, 'missing-target')
+    const link = path.join(source_path, 'dangling_sym')
+    await fs.symlink(missingTarget, link)
+
+    const before = await fs.lstat(link)
+    t.true(before.isSymbolicLink(), 'should create symlink before remove')
+
+    const result = await runRm([link])
+
+    t.is(result.code, 0, 'exit code should be 0')
+    await t.throwsAsync(async () => fs.lstat(link), {
+      code: 'ENOENT'
+    })
+  })
+
+  !is_as(type) && test(`-r should not dereference a directory symlink`, async t => {
+    const {
+      createDir,
+      createFile,
+      runRm,
+      pathExists
+    } = t.context
+
+    const realDir = await createDir({
+      name: 'real-dir'
+    })
+
+    const keep = await createFile({
+      name: 'keep',
+      under: realDir
+    })
+
+    const link = path.join(path.dirname(realDir), 'real-dir-sym')
+    await fs.symlink(realDir, link)
+
+    const result = await runRm(['-r', link])
+
+    t.is(result.code, 0, 'exit code should be 0')
+    await t.throwsAsync(async () => fs.lstat(link), {
+      code: 'ENOENT'
+    })
+    t.true(await pathExists(realDir), 'target directory should remain')
+    t.true(await pathExists(keep), 'target content should remain')
+  })
+
+  !is_as(type) && test(`-ri should not dereference a directory symlink`, async t => {
+    const {
+      createDir,
+      createFile,
+      runRm,
+      pathExists
+    } = t.context
+
+    const realDir = await createDir({
+      name: 'real-dir-i'
+    })
+
+    const keep = await createFile({
+      name: 'keep-i',
+      under: realDir
+    })
+
+    const link = path.join(path.dirname(realDir), 'real-dir-sym-i')
+    await fs.symlink(realDir, link)
+
+    const result = await runRm(['-ri', link], {
+      input: ['y']
+    })
+
+    t.is(result.code, 0, 'exit code should be 0')
+    await t.throwsAsync(async () => fs.lstat(link), {
+      code: 'ENOENT'
+    })
+    t.true(await pathExists(realDir), 'target directory should remain')
+    t.true(await pathExists(keep), 'target content should remain')
+  })
+
+  !is_as(type) && test(`removes a file prefixed with "-" after --`, async t => {
+    const {
+      source_path,
+      createFile,
+      runRm,
+      pathExists
+    } = t.context
+
+    const name = '-dash-file'
+    await createFile({name})
+
+    const result = await runRm(['--', name], {
+      cwd: source_path
+    })
+
+    t.is(result.code, 0, 'exit code should be 0')
+    t.false(await pathExists(name), 'file should be removed')
+  })
+
+  !is_as(type) && test(`removes a file with newline in filename`, async t => {
+    const {
+      createFile,
+      runRm,
+      pathExists
+    } = t.context
+
+    const filename = 'line1\nline2'
+    const filepath = await createFile({
+      name: filename
+    })
+
+    const result = await runRm([filepath])
+
+    t.is(result.code, 0, 'exit code should be 0')
+    t.false(await pathExists(filepath), 'file should be removed')
+  })
 }

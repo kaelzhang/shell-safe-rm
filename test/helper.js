@@ -60,7 +60,8 @@ const generateContextMethods = (
   function runRm (args, {
     input = [],
     command = rm_command,
-    env: arg_env = {}
+    env: arg_env = {},
+    cwd
   } = {}) {
     return new Promise((resolve, reject) => {
       const env = {
@@ -73,7 +74,8 @@ const generateContextMethods = (
       }
 
       const child = spawn(command, args, {
-        env
+        env,
+        cwd
       })
       let stdout = ''
       let stderr = ''

@@ -490,7 +490,11 @@ do_trash(){
 
 
 get_absolute_path(){
-  echo $(cd "$(dirname "$1")" && pwd)/$(basename "$1")
+  local dir
+  local base
+  dir=$(cd "$(dirname -- "$1")" && pwd)
+  base=$(basename -- "$1")
+  printf '%s/%s\n' "$dir" "$base"
 }
 
 
@@ -601,7 +605,7 @@ check_target_to_move(){
 mac_trash(){
   check_target_to_move "$1"
   local move=$_to_move
-  local base=$(basename "$move")
+  local base=$(basename -- "$move")
 
   # foo.jpg => "foo" + ".jpg"
   # foo => "foo" + ""
@@ -623,7 +627,7 @@ mac_trash(){
   [[ "$OPT_VERBOSE" == 1 ]] && list_files "$1"
 
   debug "$LINENO: mv $move to $trash_path"
-  mv "$move" "$trash_path"
+  mv -- "$move" "$trash_path"
   local status=$?
 
   [[ "$_traveled" == 1 ]] && cd "$__DIRNAME" &> /dev/null
@@ -672,7 +676,7 @@ check_linux_trash_base(){
 linux_trash(){
   check_target_to_move "$1"
   local move=$_to_move
-  local base=$(basename "$move")
+  local base=$(basename -- "$move")
 
   base=$(check_linux_trash_base "$base")
 
@@ -682,7 +686,7 @@ linux_trash(){
 
   # Move the target into the trash
   debug "$LINENO: mv $move to $trash_path"
-  mv "$move" "$trash_path"
+  mv -- "$move" "$trash_path"
   local move_status=$?
 
   if [[ $move_status -ne 0 ]]; then
@@ -763,28 +767,20 @@ for file in "${FILE_NAME[@]}"; do
   fi
 
   # the same check also apply on /. /..
-  if [[ $(basename "$file") == "." || $(basename "$file") == ".." ]]; then
+  if [[ $(basename -- "$file") == "." || $(basename -- "$file") == ".." ]]; then
     error "$COMMAND: \".\" and \"..\" may not be removed"
     EXIT_CODE=1
     continue
   fi
 
-  # deal with wildcard and also, redirect error output
-  ls_result=$(ls -d "$file" 2> /dev/null)
+  if [[ -e "$file" || -L "$file" ]]; then
+    remove "$file"
+    status=$?
+    debug "$LINENO: remove returned status: $status"
 
-  # debug
-  debug "$LINENO: ls_result: $ls_result"
-
-  if [[ -n "$ls_result" ]]; then
-    for file in "$ls_result"; do
-      remove "$file"
-      status=$?
-      debug "$LINENO: remove returned status: $status"
-
-      if [[ ! $status == 0 ]]; then
-        EXIT_CODE=1
-      fi
-    done
+    if [[ ! $status == 0 ]]; then
+      EXIT_CODE=1
+    fi
   elif [[ -z "$OPT_FORCE" ]]; then
     error "$COMMAND: $file: No such file or directory" >&2
     EXIT_CODE=1
