@@ -1,4 +1,5 @@
 const path = require('path')
+const fs = require('fs').promises
 const {v4: uuid} = require('uuid')
 const delay = require('delay')
 
@@ -357,5 +358,93 @@ remove ${dir}? y
     )
 
     t.false(await pathExists(dir), 'directory should be removed')
+  })
+
+  !is_as(type) && test(`#47: removes symlink itself instead of target`, async t => {
+    const {
+      createFile,
+      runRm,
+      pathExists
+    } = t.context
+
+    const target = await createFile({
+      name: 'file1'
+    })
+
+    const link = path.join(path.dirname(target), 'file1_sym')
+    await fs.symlink(target, link)
+
+    const result = await runRm([link])
+
+    t.is(result.code, 0, 'exit code should be 0')
+    t.false(await pathExists(link), 'symlink should be removed')
+    t.true(await pathExists(target), 'target file should remain')
+  })
+
+  !is_as(type) && test(`#47: applescript path should also remove symlink itself`, async t => {
+    const {
+      root,
+      createDir,
+      createFile,
+      runRm,
+      pathExists
+    } = t.context
+
+    const home = await createDir({
+      name: 'home',
+      under: root
+    })
+
+    await createDir({
+      name: '.Trash',
+      under: home
+    })
+
+    const mockBin = await createDir({
+      name: 'mock-bin',
+      under: root
+    })
+
+    // Simulate Finder alias behavior: if safe-rm calls osascript with a symlink,
+    // this mock deletes the resolved target. safe-rm should bypass this for symlinks.
+    const mockOsa = await createFile({
+      name: 'osascript',
+      under: mockBin,
+      content: `#!/usr/bin/env bash
+expr=$2
+target=$(printf '%s' "$expr" | cut -d '"' -f2)
+
+if [[ -L "$target" ]]; then
+  resolved=$(readlink "$target")
+  if [[ "$resolved" != /* ]]; then
+    resolved="$(cd "$(dirname "$target")" && pwd)/$resolved"
+  fi
+  /bin/rm -f "$resolved"
+else
+  /bin/rm -rf "$target"
+fi
+`
+    })
+
+    await fs.chmod(mockOsa, 0o755)
+
+    const target = await createFile({
+      name: 'file2'
+    })
+
+    const link = path.join(path.dirname(target), 'file2_sym')
+    await fs.symlink(target, link)
+
+    const result = await runRm([link], {
+      env: {
+        HOME: home,
+        PATH: `${mockBin}:${process.env.PATH}`,
+        SAFE_RM_TRASH: ''
+      }
+    })
+
+    t.is(result.code, 0, 'exit code should be 0')
+    t.false(await pathExists(link), 'symlink should be removed')
+    t.true(await pathExists(target), 'target file should remain')
   })
 }

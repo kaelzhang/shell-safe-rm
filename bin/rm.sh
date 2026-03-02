@@ -528,12 +528,19 @@ applescript_trash(){
 
   [[ "$OPT_VERBOSE" == 1 ]] && list_files "$target"
 
+  # #47: Finder alias resolves symlinks to their targets.
+  # For symbolic links, fallback to `mv`-based trash to remove the link itself.
+  if [[ -L "$target" ]]; then
+    debug "$LINENO: symlink detected, fallback to mac_trash: $target"
+    mac_trash "$target"
+    return $?
+  fi
+
   debug "$LINENO: osascript delete $target"
 
   osascript -e "tell application \"Finder\" to delete (POSIX file \"$target\" as alias)" &> /dev/null
 
-  # TODO: handle osascript errors
-  return 0
+  return $?
 }
 
 
