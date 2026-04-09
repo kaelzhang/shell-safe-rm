@@ -173,8 +173,7 @@ Targets outside the configured scope will be skipped and reported as unsafe.
 For example:
 
 ```sh
-export SAFE_RM_SCOPE="$HOME"
-safe-rm -rf /
+SAFE_RM_SCOPE="$HOME" safe-rm -rf /
 # rm: target '/' skipped, unsafe directory scope
 ```
 
