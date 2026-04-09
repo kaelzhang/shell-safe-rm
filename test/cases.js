@@ -20,6 +20,8 @@ const is_as = type => type === 'safe-rm-as'
 // We skip testing trash dir for vanilla rm
 const should_skip_test_trash_dir = type => is_rm(type) || is_as(type)
 
+const escapeRegExp = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
 module.exports = (
   test,
   {
@@ -111,32 +113,24 @@ module.exports = (
       .sort((a, b) => a.length - b.length)
 
       if (IS_MACOS) {
-        // /path/to/foo[.jpg]
-        // /path/to/foo 12.58.23[.jpg]
-        // /path/to/foo 12.58.23 12.58.23[.jpg]
-        const [f1, f2, f3] = files
-
-        const [fb1, fb2, fb3] = [f1, f2, f3].map(
-          f => {
-            const base = path.basename(f)
-
-            return base.slice(0, base.length - ext.length)
-          }
+        const baseNames = files.map(file => path.basename(file))
+        const timestamped = baseNames.filter(base => base !== full_name)
+        const timestampedRe = new RegExp(
+          ext
+            ? `^${escapeRegExp(filename)} \\d{2}\\.\\d{2}\\.\\d{2}${escapeRegExp(ext)}X*$`
+            : `^${escapeRegExp(filename)} \\d{2}\\.\\d{2}\\.\\d{2}X*$`
         )
 
-        const [fbs1, fbs2, fbs3] = [fb1, fb2, fb3].map(f => f.split(' '))
-
-        const time = fbs2[1]
-
-        t.true(files.every(f => f.endsWith(ext)), 'should have the same ext')
-
-        t.is(fb1, filename)
-        t.is(fbs1[0], filename)
-        t.is(fbs2[0], filename)
-        t.is(fbs3[0], filename)
-
-        t.is(fbs3[1], time)
-        t.is(fbs3[2], time)
+        t.is(baseNames.filter(base => base === full_name).length, 1)
+        t.is(timestamped.length, 2)
+        t.true(
+          timestamped.every(base => timestampedRe.test(base)),
+          'timestamped duplicates should follow Finder naming'
+        )
+        t.true(
+          timestamped.some(base => ext ? base.endsWith(ext) : !base.endsWith('X')),
+          'should include a plain timestamped duplicate'
+        )
       } else {
         // /path/to/foo[.jpg]
         // /path/to/foo[.jpg].1
@@ -271,6 +265,110 @@ module.exports = (
     t.deepEqual(files, [filename, `${filename}.1`, `${filename}.2`])
     t.is(await fs.readFile(existing0, 'utf8'), 'existing-0')
     t.is(await fs.readFile(existing1, 'utf8'), 'existing-1')
+  })
+
+  !is_rm(type) && !is_as(type) && IS_MACOS && test(`mac fallback duplicate naming matches Finder without extension`, async t => {
+    const {
+      root,
+      createDir,
+      createFile,
+      runRm,
+      lsFileInTrash
+    } = t.context
+
+    const mockBin = await createDir({
+      name: 'mock-bin-noext',
+      under: root
+    })
+
+    const mockDate = await createFile({
+      name: 'date',
+      under: mockBin,
+      content: '#!/usr/bin/env bash\necho 12.34.56\n'
+    })
+
+    await fs.chmod(mockDate, 0o755)
+
+    const filename = `finder-noext-${uuid()}`
+
+    for (const content of ['1', '2', '3', '4']) {
+      const filepath = await createFile({
+        name: filename,
+        content
+      })
+
+      const result = await runRm([filepath], {
+        env: {
+          PATH: `${mockBin}:${process.env.PATH}`
+        }
+      })
+
+      assertEmptySuccess(t, result)
+    }
+
+    const files = (await lsFileInTrash(filename))
+      .map(file => path.basename(file))
+      .sort((a, b) => a.length - b.length)
+
+    t.deepEqual(files, [
+      filename,
+      `${filename} 12.34.56`,
+      `${filename} 12.34.56X`,
+      `${filename} 12.34.56XX`
+    ])
+  })
+
+  !is_rm(type) && !is_as(type) && IS_MACOS && test(`mac fallback duplicate naming matches Finder with extensions`, async t => {
+    const {
+      root,
+      createDir,
+      createFile,
+      runRm,
+      lsFileInTrash
+    } = t.context
+
+    const mockBin = await createDir({
+      name: 'mock-bin-ext',
+      under: root
+    })
+
+    const mockDate = await createFile({
+      name: 'date',
+      under: mockBin,
+      content: '#!/usr/bin/env bash\necho 12.34.56\n'
+    })
+
+    await fs.chmod(mockDate, 0o755)
+
+    const filename = `finder-ext-${uuid()}.jpg`
+
+    for (const content of ['1', '2', '3', '4']) {
+      const filepath = await createFile({
+        name: filename,
+        content
+      })
+
+      const result = await runRm([filepath], {
+        env: {
+          PATH: `${mockBin}:${process.env.PATH}`
+        }
+      })
+
+      assertEmptySuccess(t, result)
+    }
+
+    const files = (await lsFileInTrash(filename))
+      .map(file => path.basename(file))
+      .sort((a, b) => a.length - b.length)
+
+    const baseName = path.basename(filename, '.jpg')
+
+    t.deepEqual(files, [
+      filename,
+      `${baseName} 12.34.56.jpg`,
+      `${baseName} 12.34.56.jpgX`,
+      `${baseName} 12.34.56.jpgXX`
+    ])
   })
 
   test(`#22 exit code with -f option`, async t => {

@@ -12,6 +12,8 @@ const IS_MACOS = process.platform === 'darwin'
   // For linux mock testing
   && !process.env.SAFE_RM_DEBUG_LINUX
 
+const escapeRegExp = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
 const generateContextMethods = (
   rm_command,
   rm_command_env
@@ -144,9 +146,12 @@ const generateContextMethods = (
     const _filename = path.basename(filepath)
     const ext = path.extname(_filename)
     const filename = path.basename(_filename, ext)
+    const pattern = ext
+      ? new RegExp(`^${escapeRegExp(filename)}(?: \\d{2}\\.\\d{2}\\.\\d{2})?${escapeRegExp(ext)}X*$`)
+      : new RegExp(`^${escapeRegExp(filename)}(?: \\d{2}\\.\\d{2}\\.\\d{2}X*)?$`)
 
     const filtered = files.filter(
-      f => f.endsWith(ext) && f.startsWith(filename)
+      f => pattern.test(f)
     ).map(f => path.join(trash_path, f))
 
     return filtered

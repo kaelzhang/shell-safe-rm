@@ -570,16 +570,22 @@ check_mac_trash_path(){
   local ext=$2
   local full_path="$path$ext"
 
-  # if already in the trash
-  if [[ -e "$full_path" ]]; then
-    debug "$LINENO: $full_path already exists"
-
-    # renew $_short_time_ret
-    short_time
-    check_mac_trash_path "$path $_short_time_ret" "$ext"
-  else
+  if [[ ! -e "$full_path" ]]; then
     _mac_trash_path_ret=$full_path
+    return
   fi
+
+  debug "$LINENO: $full_path already exists"
+
+  short_time
+  full_path="$path $_short_time_ret$ext"
+
+  while [[ -e "$full_path" ]]; do
+    debug "$LINENO: $full_path already exists"
+    full_path="${full_path}X"
+  done
+
+  _mac_trash_path_ret=$full_path
 }
 
 
