@@ -226,6 +226,53 @@ module.exports = (
     t.is(files.length, 1, 'file should be moved into trash instead of being hard-deleted')
   })
 
+  !is_rm(type) && !is_as(type) && !IS_MACOS && test(`linux duplicate naming treats regex chars literally`, async t => {
+    const {
+      trash_path,
+      createDir,
+      createFile,
+      runRm,
+      pathExists,
+      lsFileInTrash
+    } = t.context
+
+    const filename = 'a+b'
+    const trashFilesDir = await createDir({
+      name: 'files',
+      under: trash_path
+    })
+
+    const existing0 = await createFile({
+      name: filename,
+      under: trashFilesDir,
+      content: 'existing-0'
+    })
+
+    const existing1 = await createFile({
+      name: `${filename}.1`,
+      under: trashFilesDir,
+      content: 'existing-1'
+    })
+
+    const filepath = await createFile({
+      name: filename,
+      content: 'incoming'
+    })
+
+    const result = await runRm([filepath])
+
+    assertEmptySuccess(t, result)
+    t.false(await pathExists(filepath), 'source file should be removed')
+
+    const files = (await lsFileInTrash(filename))
+      .map(file => path.basename(file))
+      .sort()
+
+    t.deepEqual(files, [filename, `${filename}.1`, `${filename}.2`])
+    t.is(await fs.readFile(existing0, 'utf8'), 'existing-0')
+    t.is(await fs.readFile(existing1, 'utf8'), 'existing-1')
+  })
+
   test(`#22 exit code with -f option`, async t => {
     const {
       source_path,

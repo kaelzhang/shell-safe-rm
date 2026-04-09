@@ -662,16 +662,35 @@ check_linux_trash_base(){
 
     local max_n=0
     local num=
+    local restore_nullglob=$(shopt -p nullglob)
+    local restore_dotglob=$(shopt -p dotglob)
+    shopt -s nullglob dotglob
+    local list=("$trash"/*)
+    eval "$restore_nullglob"
+    eval "$restore_dotglob"
+    local file
+    local name
+    local suffix
 
-    while IFS= read -r file; do
-      if [[ $file =~ ${base}\.([0-9]+)$ ]]; then
-          # Remove leading zeros and make sure the number is in base 10
-          num=$((10#${BASH_REMATCH[1]}))
-          if ((num > max_n)); then
-              max_n=$num
-          fi
+    for file in "${list[@]}"; do
+      name=$(basename -- "$file")
+
+      if [[ "$name" != "$base".* ]]; then
+        continue
       fi
-    done < <(find "$trash" -maxdepth 1)
+
+      suffix=${name#"$base".}
+
+      if [[ ! "$suffix" =~ ^[0-9]+$ ]]; then
+        continue
+      fi
+
+      # Remove leading zeros and make sure the number is in base 10
+      num=$((10#$suffix))
+      if ((num > max_n)); then
+        max_n=$num
+      fi
+    done
 
     (( max_n += 1 ))
 
