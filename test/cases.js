@@ -402,6 +402,149 @@ module.exports = (
     ])
   })
 
+  !is_rm(type) && test(`scope "." allows removing targets under cwd only`, async t => {
+    const {
+      root,
+      source_path,
+      createDir,
+      createFile,
+      runRm,
+      pathExists
+    } = t.context
+
+    const trash = await createDir({
+      name: 'scope-trash-dot',
+      under: root
+    })
+
+    const cwd = await createDir({
+      name: 'scope-cwd',
+      under: source_path
+    })
+
+    const inside = await createDir({
+      name: 'foo',
+      under: cwd
+    })
+
+    await createFile({
+      name: 'bar',
+      under: inside
+    })
+
+    const resultInside = await runRm(['-rf', 'foo'], {
+      cwd,
+      env: {
+        SAFE_RM_SCOPE: '.',
+        SAFE_RM_TRASH: trash
+      }
+    })
+
+    assertEmptySuccess(t, resultInside)
+    t.false(await pathExists(inside), 'in-scope target should be removed')
+
+    const resultOutside = await runRm(['-rf', '../'], {
+      cwd,
+      env: {
+        SAFE_RM_SCOPE: '.',
+        SAFE_RM_TRASH: trash
+      }
+    })
+
+    t.is(resultOutside.code, 1, 'out-of-scope target should fail')
+    t.true(resultOutside.stderr.includes('unsafe directory scope'))
+    t.true(await pathExists(source_path), 'parent directory should remain')
+  })
+
+  !is_rm(type) && test(`scope "~" expands HOME and blocks targets outside home`, async t => {
+    const {
+      root,
+      createDir,
+      createFile,
+      runRm,
+      pathExists
+    } = t.context
+
+    const home = await createDir({
+      name: 'scope-home',
+      under: root
+    })
+
+    const trash = await createDir({
+      name: 'scope-trash-home',
+      under: root
+    })
+
+    const inside = await createFile({
+      name: 'inside-home',
+      under: home
+    })
+
+    const outside = await createFile({
+      name: 'outside-home'
+    })
+
+    const env = {
+      HOME: home,
+      SAFE_RM_SCOPE: '~',
+      SAFE_RM_TRASH: trash
+    }
+
+    const resultInside = await runRm([inside], {
+      env
+    })
+
+    assertEmptySuccess(t, resultInside)
+    t.false(await pathExists(inside), 'home-scoped target should be removed')
+
+    const resultOutside = await runRm([outside], {
+      env
+    })
+
+    t.is(resultOutside.code, 1, 'target outside home scope should fail')
+    t.true(resultOutside.stderr.includes('unsafe directory scope'))
+    t.true(await pathExists(outside), 'out-of-scope file should remain')
+  })
+
+  !is_rm(type) && test(`scope checks symlink path instead of symlink target`, async t => {
+    const {
+      root,
+      createDir,
+      createFile,
+      runRm,
+      pathExists
+    } = t.context
+
+    const trash = await createDir({
+      name: 'scope-trash-link',
+      under: root
+    })
+
+    const cwd = await createDir({
+      name: 'scope-link-cwd',
+      under: root
+    })
+
+    const outsideTarget = await createFile({
+      name: 'scope-link-target'
+    })
+
+    const link = path.join(cwd, 'scope-link')
+    await fs.symlink(outsideTarget, link)
+
+    const result = await runRm(['scope-link'], {
+      cwd,
+      env: {
+        SAFE_RM_SCOPE: '.',
+        SAFE_RM_TRASH: trash
+      }
+    })
+
+    assertEmptySuccess(t, result)
+    t.false(await pathExists(link), 'symlink should be removed')
+    t.true(await pathExists(outsideTarget), 'symlink target should remain')
+  })
+
   !is_rm(type) && !is_as(type) && test(`-I only prompts for more than three files`, async t => {
     const {
       createFile,

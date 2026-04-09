@@ -20,8 +20,19 @@ fi
 # ```
 SAFE_RM_CONFIG=${SAFE_RM_CONFIG:="$SAFE_RM_CONFIG_ROOT/config"}
 
+SAFE_RM_SCOPE_ENV_DEFINED=
+SAFE_RM_SCOPE_ENV_VALUE=
+if [[ ${SAFE_RM_SCOPE+x} ]]; then
+  SAFE_RM_SCOPE_ENV_DEFINED=1
+  SAFE_RM_SCOPE_ENV_VALUE=$SAFE_RM_SCOPE
+fi
+
 if [[ -f "$SAFE_RM_CONFIG" ]]; then
   source "$SAFE_RM_CONFIG"
+fi
+
+if [[ -n "$SAFE_RM_SCOPE_ENV_DEFINED" ]]; then
+  SAFE_RM_SCOPE=$SAFE_RM_SCOPE_ENV_VALUE
 fi
 
 # Print debug info or not
@@ -351,6 +362,8 @@ check_return_status(){
 remove(){
   local file=$1
 
+  ensure_safe_scope "$file" || return 1
+
   # if is dir
   if [[ -d "$file" && ! -L "$file" ]]; then
 
@@ -492,9 +505,56 @@ do_trash(){
 get_absolute_path(){
   local dir
   local base
-  dir=$(cd "$(dirname -- "$1")" && pwd)
+  if [[ "$1" == "/" ]]; then
+    printf '/\n'
+    return
+  fi
+
+  dir=$(cd "$(dirname -- "$1")" && pwd) || return 1
   base=$(basename -- "$1")
-  printf '%s/%s\n' "$dir" "$base"
+
+  case "$base" in
+    .)
+      printf '%s\n' "$dir"
+      ;;
+
+    ..)
+      dir=$(cd "$dir/.." && pwd) || return 1
+      printf '%s\n' "$dir"
+      ;;
+
+    *)
+      printf '%s/%s\n' "$dir" "$base"
+      ;;
+  esac
+}
+
+
+expand_home_path(){
+  case $1 in
+    "~")
+      printf '%s\n' "$HOME"
+      ;;
+
+    "~/"*)
+      printf '%s/%s\n' "$HOME" "${1#~/}"
+      ;;
+
+    *)
+      printf '%s\n' "$1"
+      ;;
+  esac
+}
+
+
+resolve_directory_path(){
+  local path
+  path=$(expand_home_path "$1")
+
+  (
+    cd "$path" &> /dev/null || exit 1
+    pwd
+  )
 }
 
 
@@ -532,6 +592,44 @@ is_in_trash(){
   trash_abs=$(cd "$SAFE_RM_TRASH" && pwd) || return 1
 
   [[ "$target_abs" == "$trash_abs" || "$target_abs" == "$trash_abs"/* ]]
+}
+
+
+SAFE_RM_SCOPE_ROOT=
+init_safe_rm_scope(){
+  if [[ -z "$SAFE_RM_SCOPE" ]]; then
+    return 0
+  fi
+
+  SAFE_RM_SCOPE_ROOT=$(resolve_directory_path "$SAFE_RM_SCOPE") || {
+    error "$COMMAND: invalid SAFE_RM_SCOPE '$SAFE_RM_SCOPE': not an existing directory"
+    return 1
+  }
+
+  debug "$LINENO: safe rm scope enabled: $SAFE_RM_SCOPE_ROOT"
+}
+
+
+is_in_scope(){
+  local target_abs
+
+  if [[ -z "$SAFE_RM_SCOPE_ROOT" ]]; then
+    return 0
+  fi
+
+  target_abs=$(get_absolute_path "$1") || return 1
+
+  [[ "$target_abs" == "$SAFE_RM_SCOPE_ROOT" || "$target_abs" == "$SAFE_RM_SCOPE_ROOT"/* ]]
+}
+
+
+ensure_safe_scope(){
+  if is_in_scope "$1"; then
+    return 0
+  fi
+
+  error "$COMMAND: target '$1' skipped, unsafe directory scope"
+  return 1
 }
 
 
@@ -806,6 +904,8 @@ list_files(){
 # debug: get $FILE_NAME array length
 debug "$LINENO: ${#FILE_NAME[@]} files or directory to process: ${FILE_NAME[@]}"
 
+init_safe_rm_scope || do_exit $LINENO 1
+
 # test remove interactive_once: ask for 3 or more files or with recursive option
 if [[ (${#FILE_NAME[@]} > 3 || $OPT_RECURSIVE == 1) && $OPT_INTERACTIVE_ONCE == 1 ]]; then
   echo -n "$COMMAND: remove all arguments? "
@@ -820,6 +920,11 @@ fi
 
 for file in "${FILE_NAME[@]}"; do
   debug "$LINENO: result file $file"
+
+  if ! ensure_safe_scope "$file"; then
+    EXIT_CODE=1
+    continue
+  fi
 
   if [[ $file == "/" ]]; then
     error "it is dangerous to operate recursively on /"

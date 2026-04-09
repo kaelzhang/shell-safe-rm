@@ -161,6 +161,31 @@ export SAFE_RM_TRASH=/path/to/trash
 export SAFE_RM_PERM_DEL_FILES_IN_TRASH=yes
 ```
 
+### Restrict Removals To A Safe Directory Scope
+
+```sh
+export SAFE_RM_SCOPE="$HOME"
+```
+
+When `SAFE_RM_SCOPE` is set, `safe-rm` only removes targets under that directory.
+Targets outside the configured scope will be skipped and reported as unsafe.
+
+For example:
+
+```sh
+export SAFE_RM_SCOPE="$HOME"
+safe-rm -rf /
+# rm: target '/' skipped, unsafe directory scope
+```
+
+You could also use a relative scope such as `.`:
+
+```sh
+SAFE_RM_SCOPE=. safe-rm -rf ./foo
+SAFE_RM_SCOPE=. safe-rm -rf ../
+# rm: target '../' skipped, unsafe directory scope
+```
+
 ### Protect Files And Directories From Deleting
 
 If you want to protect some certain files or directories from deleting by mistake, you could create a `.gitignore` file under the `"~/.safe-rm/"` directory, you could write [.gitignore rules](https://git-scm.com/docs/gitignore) inside the file.
