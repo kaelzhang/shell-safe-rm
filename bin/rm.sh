@@ -330,7 +330,7 @@ if [[ ! -e $SAFE_RM_TRASH ]]; then
   echo -n "(yes/no): "
 
   read answer
-  if [[ $answer == "yes" || ! -n $anwser ]]; then
+  if [[ $answer == "yes" || ! -n $answer ]]; then
     mkdir -p "$SAFE_RM_TRASH"
   else
     echo "Canceled!"

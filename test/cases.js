@@ -431,6 +431,33 @@ module.exports = (
     )
   })
 
+  !is_rm(type) && !is_as(type) && IS_MACOS && test(`declining trash directory creation aborts removal`, async t => {
+    const {
+      root,
+      createFile,
+      runRm,
+      pathExists
+    } = t.context
+
+    const filepath = await createFile({
+      name: 'needs-trash'
+    })
+
+    const trashPath = path.join(root, 'missing-trash')
+    const result = await runRm([filepath], {
+      input: ['no'],
+      env: {
+        SAFE_RM_TRASH: trashPath
+      }
+    })
+
+    t.is(result.code, 1, 'exit code should be 1 when declining trash creation')
+    t.true(result.stdout.includes(`Directory "${trashPath}" does not exist`))
+    t.true(result.stdout.includes('Canceled!'))
+    t.true(await pathExists(filepath), 'file should remain in place')
+    t.false(await pathExists(trashPath), 'trash directory should not be created')
+  })
+
   test(`#22 exit code with -f option`, async t => {
     const {
       source_path,

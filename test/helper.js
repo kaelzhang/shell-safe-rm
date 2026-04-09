@@ -85,7 +85,7 @@ const generateContextMethods = (
       child.stdout.on('data', data => {
         stdout += data.toString()
 
-        if (/\?\s*$/.test(stdout)) {
+        if (/[?:]\s*$/.test(stdout)) {
           if (!child.stdin) {
             reject(new Error('Child process does not support stdin'))
             return
