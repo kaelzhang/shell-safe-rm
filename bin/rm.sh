@@ -455,7 +455,7 @@ trash(){
   local target=$1
 
   if [[ -n $SAFE_RM_PERM_DEL_FILES_IN_TRASH ]]; then
-    if [[ "$target" == "$SAFE_RM_TRASH"* ]]; then
+    if is_in_trash "$target"; then
       # If the target is already in the trash, delete it permanently
       /bin/rm -rf "$target"
     else
@@ -495,6 +495,17 @@ get_absolute_path(){
   dir=$(cd "$(dirname -- "$1")" && pwd)
   base=$(basename -- "$1")
   printf '%s/%s\n' "$dir" "$base"
+}
+
+
+is_in_trash(){
+  local target_abs
+  local trash_abs
+
+  target_abs=$(get_absolute_path "$1") || return 1
+  trash_abs=$(cd "$SAFE_RM_TRASH" && pwd) || return 1
+
+  [[ "$target_abs" == "$trash_abs" || "$target_abs" == "$trash_abs"/* ]]
 }
 
 

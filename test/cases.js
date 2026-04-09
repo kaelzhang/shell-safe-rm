@@ -193,6 +193,39 @@ module.exports = (
     t.is(files.length, 0, 'should be already removed')
   })
 
+  !is_rm(type) && !is_as(type) && test(`permanent delete only applies to real trash descendants`, async t => {
+    const {
+      createDir,
+      createFile,
+      runRm,
+      pathExists,
+      lsFileInTrash
+    } = t.context
+
+    const sibling = await createDir({
+      name: `${path.basename(t.context.trash_path)}-other`,
+      under: path.dirname(t.context.trash_path)
+    })
+
+    const filepath = await createFile({
+      name: uuid(),
+      under: sibling
+    })
+
+    const result = await runRm([filepath], {
+      env: {
+        SAFE_RM_PERM_DEL_FILES_IN_TRASH: 'yes'
+      }
+    })
+
+    assertEmptySuccess(t, result)
+    t.false(await pathExists(filepath), 'file should be removed from the sibling dir')
+
+    const files = await lsFileInTrash(filepath)
+
+    t.is(files.length, 1, 'file should be moved into trash instead of being hard-deleted')
+  })
+
   test(`#22 exit code with -f option`, async t => {
     const {
       source_path,
