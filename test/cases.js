@@ -402,6 +402,35 @@ module.exports = (
     ])
   })
 
+  !is_rm(type) && !is_as(type) && test(`-I only prompts for more than three files`, async t => {
+    const {
+      createFile,
+      runRm,
+      pathExists
+    } = t.context
+
+    const files3 = await Promise.all(['a', 'b', 'c'].map(name => createFile({name})))
+    const result3 = await runRm(['-I', ...files3])
+
+    assertEmptySuccess(t, result3)
+    t.true(
+      (await Promise.all(files3.map(file => pathExists(file)))).every(exists => !exists),
+      'three files should be removed without a once-interactive prompt'
+    )
+
+    const files4 = await Promise.all(['d', 'e', 'f', 'g'].map(name => createFile({name})))
+    const result4 = await runRm(['-I', ...files4], {
+      input: ['n']
+    })
+
+    t.is(result4.code, 0, 'exit code should be 0 when declining the once-interactive prompt')
+    t.true(result4.stdout.includes('remove all arguments?'), 'stdout should contain the once-interactive prompt')
+    t.true(
+      (await Promise.all(files4.map(file => pathExists(file)))).every(Boolean),
+      'files should remain after declining the once-interactive prompt'
+    )
+  })
+
   test(`#22 exit code with -f option`, async t => {
     const {
       source_path,

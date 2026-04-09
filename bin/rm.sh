@@ -807,7 +807,7 @@ list_files(){
 debug "$LINENO: ${#FILE_NAME[@]} files or directory to process: ${FILE_NAME[@]}"
 
 # test remove interactive_once: ask for 3 or more files or with recursive option
-if [[ (${#FILE_NAME[@]} > 2 || $OPT_RECURSIVE == 1) && $OPT_INTERACTIVE_ONCE == 1 ]]; then
+if [[ (${#FILE_NAME[@]} > 3 || $OPT_RECURSIVE == 1) && $OPT_INTERACTIVE_ONCE == 1 ]]; then
   echo -n "$COMMAND: remove all arguments? "
   read answer
 
