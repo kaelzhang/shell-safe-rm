@@ -21,6 +21,7 @@ const is_as = type => type === 'safe-rm-as'
 const should_skip_test_trash_dir = type => is_rm(type) || is_as(type)
 
 const escapeRegExp = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const encodeTrashInfoPath = value => value.split('/').map(encodeURIComponent).join('/')
 
 module.exports = (
   test,
@@ -265,6 +266,36 @@ module.exports = (
     t.deepEqual(files, [filename, `${filename}.1`, `${filename}.2`])
     t.is(await fs.readFile(existing0, 'utf8'), 'existing-0')
     t.is(await fs.readFile(existing1, 'utf8'), 'existing-1')
+  })
+
+  !is_rm(type) && !is_as(type) && !IS_MACOS && test(`linux .trashinfo stores an encoded absolute original path`, async t => {
+    const {
+      source_path,
+      trash_path,
+      createFile,
+      runRm,
+      pathExists
+    } = t.context
+
+    const filename = 'space name'
+    const filepath = await createFile({
+      name: filename
+    })
+    const canonicalFilepath = await fs.realpath(filepath)
+
+    const result = await runRm([`./${filename}`], {
+      cwd: source_path
+    })
+
+    assertEmptySuccess(t, result)
+    t.false(await pathExists(filepath), 'source file should be removed')
+
+    const infoPath = path.join(trash_path, 'info', `${filename}.trashinfo`)
+    const info = await fs.readFile(infoPath, 'utf8')
+    const expectedPath = encodeTrashInfoPath(canonicalFilepath)
+
+    t.true(info.includes(`[Trash Info]`))
+    t.true(info.includes(`Path=${expectedPath}`))
   })
 
   !is_rm(type) && !is_as(type) && IS_MACOS && test(`mac fallback duplicate naming matches Finder without extension`, async t => {

@@ -498,6 +498,32 @@ get_absolute_path(){
 }
 
 
+encode_trashinfo_path(){
+  local path=$1
+  local out=
+  local i
+  local char
+  local hex
+  local LC_ALL=C
+
+  for ((i = 0; i < ${#path}; i += 1)); do
+    char=${path:i:1}
+
+    case "$char" in
+      [a-zA-Z0-9._~/-])
+        out="$out$char"
+        ;;
+      *)
+        hex=$(printf '%s' "$char" | od -An -tx1 | tr -d ' \n' | tr '[:lower:]' '[:upper:]')
+        out="$out%$hex"
+        ;;
+    esac
+  done
+
+  printf '%s\n' "$out"
+}
+
+
 is_in_trash(){
   local target_abs
   local trash_abs
@@ -710,6 +736,12 @@ check_linux_trash_base(){
 # trash a file or dir directly for linux
 # - move the target into
 linux_trash(){
+  local original_path
+  local trashinfo_path_value
+
+  original_path=$(get_absolute_path "$1") || return 1
+  trashinfo_path_value=$(encode_trashinfo_path "$original_path") || return 1
+
   check_target_to_move "$1"
   local move=$_to_move
   local base=$(basename -- "$move")
@@ -736,7 +768,7 @@ linux_trash(){
   local trash_time=$(date +%Y-%m-%dT%H:%M:%S)
   cat > "$info_path" <<EOF
 [Trash Info]
-Path=$move
+Path=$trashinfo_path_value
 DeletionDate=$trash_time
 EOF
   local info_status=$?
