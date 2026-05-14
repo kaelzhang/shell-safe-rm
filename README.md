@@ -185,6 +185,27 @@ SAFE_RM_SCOPE=. safe-rm -rf ../
 # rm: target '../' skipped, unsafe directory scope
 ```
 
+### Honor Options After Operands (`rm dir -rf`)
+
+GNU `rm` (most Linux distros) accepts options anywhere on the command line, so `rm dir -rf` works like `rm -rf dir`. BSD `rm` (MacOS) does not — it stops parsing options at the first operand and would treat `-rf` as a filename.
+
+By default, `safe-rm` mirrors the host's real `rm`:
+
+- On Linux: options after operands are parsed as flags (GNU style).
+- On MacOS: options after operands are treated as filenames (BSD style).
+
+To override the auto-detection (e.g. on Alpine/BusyBox where `rm` does not permute):
+
+```sh
+# Force GNU-style permutation
+export SAFE_RM_OPTIONS_ANYWHERE=yes
+
+# Force BSD-style strict ordering
+export SAFE_RM_OPTIONS_ANYWHERE=no
+```
+
+`--` always terminates option parsing in either mode.
+
 ### Protect Files And Directories From Deleting
 
 If you want to protect some certain files or directories from deleting by mistake, you could create a `.gitignore` file under the `"~/.safe-rm/"` directory, you could write [.gitignore rules](https://git-scm.com/docs/gitignore) inside the file.

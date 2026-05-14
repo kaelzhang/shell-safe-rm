@@ -975,4 +975,78 @@ fi
     t.is(result.code, 0, 'exit code should be 0')
     t.false(await pathExists(filepath), 'file should be removed')
   })
+
+  // Flag-after-operand parsing: align with the host's real `rm`.
+  // GNU rm (Linux) permutes options; BSD rm (MacOS) does not.
+  !is_rm(type) && !is_as(type) && !IS_MACOS && test(`Linux: flags after operand parse as options`, async t => {
+    const {
+      createDir,
+      createFile,
+      runRm,
+      pathExists
+    } = t.context
+
+    const dirpath = await createDir()
+    await createFile({under: dirpath})
+
+    const result = await runRm([dirpath, '-rf'])
+
+    assertEmptySuccess(t, result)
+    t.false(await pathExists(dirpath), 'directory should be removed')
+  })
+
+  !is_rm(type) && !is_as(type) && IS_MACOS && test(`MacOS: flags after operand are treated as filenames`, async t => {
+    const {
+      createDir,
+      createFile,
+      runRm,
+      pathExists
+    } = t.context
+
+    const dirpath = await createDir()
+    await createFile({under: dirpath})
+
+    const result = await runRm([dirpath, '-rf'])
+
+    t.is(result.code, 1, 'exit code should be 1')
+    t.true(await pathExists(dirpath), 'directory should remain')
+  })
+
+  !is_rm(type) && !is_as(type) && IS_MACOS && test(`SAFE_RM_OPTIONS_ANYWHERE=yes enables permutation on MacOS`, async t => {
+    const {
+      createDir,
+      createFile,
+      runRm,
+      pathExists
+    } = t.context
+
+    const dirpath = await createDir()
+    await createFile({under: dirpath})
+
+    const result = await runRm([dirpath, '-rf'], {
+      env: {SAFE_RM_OPTIONS_ANYWHERE: 'yes'}
+    })
+
+    assertEmptySuccess(t, result)
+    t.false(await pathExists(dirpath), 'directory should be removed')
+  })
+
+  !is_rm(type) && !is_as(type) && !IS_MACOS && test(`SAFE_RM_OPTIONS_ANYWHERE=no disables permutation on Linux`, async t => {
+    const {
+      createDir,
+      createFile,
+      runRm,
+      pathExists
+    } = t.context
+
+    const dirpath = await createDir()
+    await createFile({under: dirpath})
+
+    const result = await runRm([dirpath, '-rf'], {
+      env: {SAFE_RM_OPTIONS_ANYWHERE: 'no'}
+    })
+
+    t.is(result.code, 1, 'exit code should be 1')
+    t.true(await pathExists(dirpath), 'directory should remain')
+  })
 }

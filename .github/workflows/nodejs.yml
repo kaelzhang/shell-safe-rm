@@ -23,5 +23,6 @@ jobs:
         npm install
         npm run build --if-present
         npm run test:dev
+        npm run test:mock-linux
       env:
         CI: true

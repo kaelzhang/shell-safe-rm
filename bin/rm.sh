@@ -90,6 +90,25 @@ else
 fi
 
 
+# Whether to honor options after the first operand (`rm dir -rf`).
+# Defaults to auto: enabled on Linux, disabled on MacOS. yes|no to override.
+case ${SAFE_RM_OPTIONS_ANYWHERE:0:1} in
+  [yY])
+    OPTIONS_ANYWHERE=1
+    ;;
+  [nN])
+    OPTIONS_ANYWHERE=
+    ;;
+  *)
+    if [[ "$OS_TYPE" == "Linux" ]]; then
+      OPTIONS_ANYWHERE=1
+    else
+      OPTIONS_ANYWHERE=
+    fi
+    ;;
+esac
+
+
 # The target trash directory to dispose files and directories,
 #   defaults to the system trash directory
 SAFE_RM_TRASH=${SAFE_RM_TRASH:="$DEFAULT_TRASH"}
@@ -270,7 +289,7 @@ while [[ -n $1 ]]; do
     # -> args: [], files: ['-']
     *)
       push_file "$1"; debug "$LINENO: file $1"
-      ARG_END=1
+      [[ -z "$OPTIONS_ANYWHERE" ]] && ARG_END=1
       ;;
     esac
   fi
