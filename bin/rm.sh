@@ -610,7 +610,20 @@ is_in_trash(){
   target_abs=$(get_absolute_path "$1") || return 1
   trash_abs=$(cd "$SAFE_RM_TRASH" && pwd) || return 1
 
-  [[ "$target_abs" == "$trash_abs" || "$target_abs" == "$trash_abs"/* ]]
+  if [[ "$target_abs" == "$trash_abs" || "$target_abs" == "$trash_abs"/* ]]; then
+    return 0
+  fi
+
+  # Per-mount trashes live at <topdir>/.Trash/<uid>/ or <topdir>/.Trash-<uid>/.
+  if [[ -n $PER_MOUNT_ACTIVE ]]; then
+    case "$target_abs/" in
+      */.Trash/"$SAFE_RM_UID"/*|*/.Trash-"$SAFE_RM_UID"/*)
+        return 0
+        ;;
+    esac
+  fi
+
+  return 1
 }
 
 
@@ -797,12 +810,162 @@ mac_trash(){
 }
 
 
+# ------------------------------------------------------------------------------
+# Per-mount trash routing (issue #50)
+#
+# When enabled, deletions are routed to a trash directory on the SAME filesystem
+# as the target, so `mv` stays an instant rename instead of a cross-device copy.
+# Follows the FreeDesktop.org trash spec for mount-point trash directories.
+# ------------------------------------------------------------------------------
+
+# Device id (st_dev) of a path. `stat -c %d` is supported by coreutils and
+# BusyBox; it is the value `mv`/rename() keys off of to decide same-filesystem.
+dev_id_of(){
+  stat -c '%d' "$1" 2>/dev/null
+}
+
+
+# Print the mount point (top directory) of the filesystem containing $1 (a dir).
+# Prefers findmnt (util-linux); falls back to a device-id walk for BusyBox/Alpine.
+mount_point_of(){
+  local start=$1
+
+  if [[ -n $HAS_FINDMNT ]]; then
+    local mp
+    mp=$(findmnt -n -o TARGET --target "$start" 2>/dev/null)
+    if [[ -n $mp ]]; then
+      printf '%s\n' "$mp"
+      return 0
+    fi
+  fi
+
+  # Climb until the device id changes; the last same-device dir is the mount point.
+  local dir=$start
+  local dev
+  dev=$(dev_id_of "$dir") || return 1
+  [[ -z $dev ]] && return 1
+
+  local parent
+  local pdev
+  while [[ "$dir" != "/" ]]; do
+    parent=$(dirname -- "$dir")
+    pdev=$(dev_id_of "$parent") || return 1
+    [[ -z $pdev ]] && return 1
+
+    if [[ "$pdev" != "$dev" ]]; then
+      printf '%s\n' "$dir"
+      return 0
+    fi
+
+    dir=$parent
+  done
+
+  printf '/\n'
+}
+
+
+# Ensure a trash directory has its files/ and info/ subdirectories.
+ensure_trash_skeleton(){
+  mkdir -p "$1/files" "$1/info" &> /dev/null
+}
+
+
+# Select the FreeDesktop trash directory for a mount's top directory.
+# Sets _mount_trash_root and returns 0 on success, 1 if none is usable.
+_mount_trash_root=
+select_mount_trash_dir(){
+  local topdir=$1
+  _mount_trash_root=
+
+  # Spec: $topdir/.Trash must be a directory, carry the sticky bit, and not be
+  # a symbolic link. If the checks pass, use $topdir/.Trash/$uid.
+  local admin="$topdir/.Trash"
+  if [[ -d "$admin" && ! -L "$admin" && -k "$admin" ]]; then
+    if ensure_trash_skeleton "$admin/$SAFE_RM_UID"; then
+      _mount_trash_root="$admin/$SAFE_RM_UID"
+      return 0
+    fi
+  fi
+
+  # Otherwise use (and create) $topdir/.Trash-$uid.
+  if ensure_trash_skeleton "$topdir/.Trash-$SAFE_RM_UID"; then
+    _mount_trash_root="$topdir/.Trash-$SAFE_RM_UID"
+    return 0
+  fi
+
+  return 1
+}
+
+
+# Resolve the trash root + top directory for a target.
+# Sets _trash_root (always) and _trash_topdir (empty => home trash, so the
+# .trashinfo Path stays absolute; non-empty => mount trash, Path relative to it).
+_trash_root=
+_trash_topdir=
+resolve_linux_trash_root(){
+  local target=$1
+  _trash_root=$SAFE_RM_TRASH
+  _trash_topdir=
+
+  [[ -z $PER_MOUNT_ACTIVE ]] && return 0
+
+  local abs
+  abs=$(get_absolute_path "$target") || return 0
+  local parent
+  parent=$(dirname -- "$abs")
+
+  local topdir=
+
+  if [[ -n $SAFE_RM_DEBUG_MOUNT_ROOTS ]]; then
+    # Test seam: treat the listed prefixes as separate filesystems.
+    local rest=$SAFE_RM_DEBUG_MOUNT_ROOTS
+    local root
+    while [[ -n $rest ]]; do
+      root=${rest%%:*}
+      if [[ "$rest" == *:* ]]; then
+        rest=${rest#*:}
+      else
+        rest=
+      fi
+
+      [[ -z $root ]] && continue
+
+      if [[ "$parent" == "$root" || "$parent" == "$root"/* ]]; then
+        topdir=$root
+        break
+      fi
+    done
+
+    # Not under any listed root => home filesystem.
+    [[ -z $topdir ]] && return 0
+  else
+    local pdev
+    pdev=$(dev_id_of "$parent") || return 0
+
+    # Same device as the home trash => home trash (mv already instant).
+    [[ -z $pdev || "$pdev" == "$HOME_TRASH_DEV" ]] && return 0
+
+    topdir=$(mount_point_of "$parent") || return 0
+    [[ -z $topdir || "$topdir" == "/" ]] && return 0
+  fi
+
+  if select_mount_trash_dir "$topdir"; then
+    _trash_root=$_mount_trash_root
+    _trash_topdir=$topdir
+    debug "$LINENO: per-mount trash root $_trash_root (topdir $topdir)"
+  fi
+
+  return 0
+}
+
+
 # Check if the base name already exists in the trash
 # If it does, foo -> foo.1
 # If foo.1 exists, foo.1 -> foo.2
 check_linux_trash_base(){
   local base=$1
-  local trash="$SAFE_RM_TRASH/files"
+  local trash_root=${2:-$SAFE_RM_TRASH}
+  local trash="$trash_root/files"
   local path="$trash/$base"
 
   # if already in the trash
@@ -857,15 +1020,27 @@ linux_trash(){
   local trashinfo_path_value
 
   original_path=$(get_absolute_path "$1") || return 1
-  trashinfo_path_value=$(encode_trashinfo_path "$original_path") || return 1
+
+  # Pick the trash directory on the target's own filesystem when possible.
+  resolve_linux_trash_root "$1"
+  local trash_root=$_trash_root
+  local topdir=$_trash_topdir
+
+  if [[ -n $topdir ]]; then
+    # Mount-point trash: Path is relative to the top directory (spec).
+    trashinfo_path_value=$(encode_trashinfo_path "${original_path#"$topdir"/}") || return 1
+  else
+    # Home trash: absolute path.
+    trashinfo_path_value=$(encode_trashinfo_path "$original_path") || return 1
+  fi
 
   check_target_to_move "$1"
   local move=$_to_move
   local base=$(basename -- "$move")
 
-  base=$(check_linux_trash_base "$base")
+  base=$(check_linux_trash_base "$base" "$trash_root")
 
-  local trash_path="$SAFE_RM_TRASH/files/$base"
+  local trash_path="$trash_root/files/$base"
 
   [[ "$OPT_VERBOSE" == 1 ]] && list_files "$1"
 
@@ -881,7 +1056,7 @@ linux_trash(){
   fi
 
   # Save linux trash info
-  local info_path="$SAFE_RM_TRASH/info/$base.trashinfo"
+  local info_path="$trash_root/info/$base.trashinfo"
   local trash_time=$(date +%Y-%m-%dT%H:%M:%S)
   cat > "$info_path" <<EOF
 [Trash Info]
@@ -922,6 +1097,24 @@ list_files(){
 
 # debug: get $FILE_NAME array length
 debug "$LINENO: ${#FILE_NAME[@]} files or directory to process: ${FILE_NAME[@]}"
+
+# Per-mount trash: opt-in, Linux only, and only when using the default trash
+# (a custom SAFE_RM_TRASH means the user wants a single consolidated location).
+PER_MOUNT_ACTIVE=
+SAFE_RM_UID=
+HAS_FINDMNT=
+HOME_TRASH_DEV=
+if [[ ${SAFE_RM_TRASH_PER_MOUNT:0:1} =~ [yY] && "$OS_TYPE" == "Linux" ]]; then
+  if [[ "$SAFE_RM_TRASH" == "$DEFAULT_TRASH" ]]; then
+    PER_MOUNT_ACTIVE=1
+    SAFE_RM_UID=$(id -u)
+    command -v findmnt &> /dev/null && HAS_FINDMNT=1
+    HOME_TRASH_DEV=$(dev_id_of "$SAFE_RM_TRASH")
+    debug "$LINENO: per-mount trash enabled (uid=$SAFE_RM_UID findmnt=${HAS_FINDMNT:-0} home_dev=$HOME_TRASH_DEV)"
+  else
+    debug "$LINENO: per-mount trash disabled: custom SAFE_RM_TRASH"
+  fi
+fi
 
 init_safe_rm_scope || do_exit $LINENO 1
 
