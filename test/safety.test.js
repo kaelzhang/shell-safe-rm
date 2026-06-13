@@ -103,3 +103,23 @@ test('C1: cannot-enter directory must not trash its parent and siblings', async 
     await fsp.chmod(data, 0o0755).catch(() => {})
   }
 })
+
+test('H2: -I prompts once for more than three files (10 files)', async t => {
+  const {trash, work} = await setup()
+
+  const files = await Promise.all(
+    Array.from({length: 10}, (_, i) => i).map(async i => {
+      const f = path.join(work, `f${i}.txt`)
+      await fsp.writeFile(f, `content-${i}`)
+      return f
+    })
+  )
+
+  // Decline the once-prompt -> nothing should be removed.
+  const {stdout} = await run(['-I', ...files], {trash, input: ['n']})
+
+  t.true(stdout.includes('remove all arguments?'), 'the -I once-prompt must fire for >3 files')
+  for (const f of files) {
+    t.true(await exists(f), `${path.basename(f)} must survive after declining`)
+  }
+})

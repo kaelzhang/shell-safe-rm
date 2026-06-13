@@ -1138,8 +1138,10 @@ fi
 
 init_safe_rm_scope || do_exit $LINENO 1
 
-# test remove interactive_once: ask for 3 or more files or with recursive option
-if [[ (${#FILE_NAME[@]} > 3 || $OPT_RECURSIVE == 1) && $OPT_INTERACTIVE_ONCE == 1 ]]; then
+# test remove interactive_once: ask for more than three files or with recursive option
+# Use -gt for a NUMERIC comparison; `>` inside [[ ]] is lexicographic and would
+# wrongly skip the prompt for counts like 10-29, 100-299, etc.
+if [[ (${#FILE_NAME[@]} -gt 3 || $OPT_RECURSIVE == 1) && $OPT_INTERACTIVE_ONCE == 1 ]]; then
   echo -n "$COMMAND: remove all arguments? "
   read answer
 
