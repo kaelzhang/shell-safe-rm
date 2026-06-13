@@ -42,6 +42,8 @@ Combined short options are also supported, such as
 
 `-rf`, `-riv`, `-rfv`, etc
 
+The BSD-only options `-P` (overwrite), `-W` (undelete), and `-x` (don't cross mount points) are intentionally **not** supported, since they have no meaning for a trash-based tool; `safe-rm` reports them as an illegal option rather than silently ignoring them.
+
 ## Usual Installation
 
 Add an alias to your `~/.bashrc` script,
@@ -155,6 +157,18 @@ By default, on MacOS, `safe-rm` uses AppleScript as much as possible so that rem
 ```sh
 export SAFE_RM_TRASH=/path/to/trash
 ```
+
+**Note (MacOS):** setting a custom `SAFE_RM_TRASH` makes `safe-rm` move files with `mv` instead of AppleScript, which disables the Finder **"Put Back"** capability (the same trade-off as [`SAFE_RM_USE_APPLESCRIPT=no`](#disable-put-back-functionality-on-macos-macos-only)). You can still drag items back out of the trash folder manually.
+
+### Restore / "Put Back" Support
+
+Whether a trashed item can be restored depends on which path `safe-rm` uses:
+
+| Situation | Mechanism | Restorable |
+| --------- | --------- | ---------- |
+| MacOS, default system trash | AppleScript (Finder) | ✅ Finder **Put Back** |
+| MacOS, custom `SAFE_RM_TRASH`, `SAFE_RM_USE_APPLESCRIPT=no`, or a **symlink** target | `mv` | ❌ no metadata (drag back manually) |
+| Linux | `mv` + a [FreeDesktop][trash-spec] `.trashinfo` | ✅ via the desktop trash's **Restore** |
 
 ### Faster Deletes Across Filesystems (Per-Mount Trash, Linux only)
 
