@@ -261,3 +261,29 @@ test('A3: an unwritable info/ fails fast instead of spinning', async t => {
     await fsp.chmod(path.join(trash, 'info'), 0o0755).catch(() => {})
   }
 })
+
+test('M1: honors an absolute $XDG_DATA_HOME for the home trash', async t => {
+  const {root, work} = await setup()
+  const home = path.join(root, 'home')
+  const xdg = path.join(root, 'xdgdata')
+  await Promise.all([fse.ensureDir(home), fse.ensureDir(xdg)])
+
+  const f = path.join(work, 'doc.txt')
+  await fsp.writeFile(f, 'data')
+
+  // Linux mode, default trash (SAFE_RM_TRASH unset) -> trash dir derives from XDG.
+  const {code} = await run([f], {
+    trash: '',
+    env: {SAFE_RM_DEBUG_LINUX: '1', HOME: home, XDG_DATA_HOME: xdg, SAFE_RM_TRASH: ''}
+  })
+
+  t.is(code, 0)
+  t.true(
+    await exists(path.join(xdg, 'Trash', 'files', 'doc.txt')),
+    'file must land in $XDG_DATA_HOME/Trash'
+  )
+  t.false(
+    await exists(path.join(home, '.local', 'share', 'Trash', 'files', 'doc.txt')),
+    'must NOT fall back to $HOME/.local/share when XDG_DATA_HOME is set'
+  )
+})

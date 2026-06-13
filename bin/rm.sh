@@ -85,7 +85,14 @@ if [[ "$(uname -s)" == "Darwin"* && -z $SAFE_RM_DEBUG_LINUX ]]; then
   DEFAULT_TRASH="$HOME/.Trash"
 else
   OS_TYPE="Linux"
-  DEFAULT_TRASH="$HOME/.local/share/Trash"
+  # FreeDesktop home trash is $XDG_DATA_HOME/Trash; per the XDG base-dir spec,
+  # $HOME/.local/share is only the fallback when XDG_DATA_HOME is unset, empty,
+  # or relative (a non-absolute value must be ignored).
+  if [[ "${XDG_DATA_HOME:0:1}" == "/" ]]; then
+    DEFAULT_TRASH="$XDG_DATA_HOME/Trash"
+  else
+    DEFAULT_TRASH="$HOME/.local/share/Trash"
+  fi
   SAFE_RM_USE_APPLESCRIPT=
 fi
 
