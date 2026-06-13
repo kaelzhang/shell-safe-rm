@@ -274,7 +274,9 @@ test('M1: honors an absolute $XDG_DATA_HOME for the home trash', async t => {
   // Linux mode, default trash (SAFE_RM_TRASH unset) -> trash dir derives from XDG.
   const {code} = await run([f], {
     trash: '',
-    env: {SAFE_RM_DEBUG_LINUX: '1', HOME: home, XDG_DATA_HOME: xdg, SAFE_RM_TRASH: ''}
+    env: {
+      SAFE_RM_DEBUG_LINUX: '1', HOME: home, XDG_DATA_HOME: xdg, SAFE_RM_TRASH: ''
+    }
   })
 
   t.is(code, 0)
@@ -286,4 +288,73 @@ test('M1: honors an absolute $XDG_DATA_HOME for the home trash', async t => {
     await exists(path.join(home, '.local', 'share', 'Trash', 'files', 'doc.txt')),
     'must NOT fall back to $HOME/.local/share when XDG_DATA_HOME is set'
   )
+})
+
+test('L1: a dotfile duplicate keeps its name without a leading space', async t => {
+  if (!IS_MACOS) {
+    t.pass('macOS-only (mac_trash naming)')
+    return
+  }
+  const {trash, work} = await setup()
+  const macEnv = {SAFE_RM_DEBUG_LINUX: ''}
+  const f = path.join(work, '.bashrc')
+
+  await fsp.writeFile(f, 'one')
+  await run([f], {trash, env: macEnv})
+  await fsp.writeFile(f, 'two')
+  await run([f], {trash, env: macEnv})
+
+  const names = await fsp.readdir(trash)
+  t.true(names.includes('.bashrc'), 'first copy keeps .bashrc')
+  t.true(names.some(n => /^\.bashrc \d\d\.\d\d\.\d\d/.test(n)), 'duplicate named ".bashrc HH.MM.SS"')
+  t.false(names.some(n => n.startsWith(' ')), 'no trash entry has a leading space')
+})
+
+test('L2: -v on a symlink (default trash) prints the path once', async t => {
+  if (!IS_MACOS) {
+    t.pass('macOS-only (AppleScript path)')
+    return
+  }
+  const {root, work} = await setup()
+  const home = path.join(root, 'home')
+  await fse.ensureDir(path.join(home, '.Trash'))
+  const target = path.join(work, 'target.txt')
+  await fsp.writeFile(target, 'data')
+  const link = path.join(work, 'mylink')
+  await fsp.symlink(target, link)
+
+  const {stdout} = await run(['-v', link], {
+    trash: '',
+    env: {SAFE_RM_DEBUG_LINUX: '', HOME: home, SAFE_RM_TRASH: ''}
+  })
+
+  t.is(stdout.split(link).length - 1, 1, 'symlink path printed exactly once')
+  t.true(await exists(target), 'the symlink target must be untouched')
+})
+
+test('L3: -d on a non-empty directory says "Directory not empty"', async t => {
+  const {trash, work} = await setup()
+  const dir = path.join(work, 'd')
+  await fse.ensureDir(dir)
+  await fsp.writeFile(path.join(dir, 'x'), 'x')
+
+  const {code, stderr} = await run(['-d', dir], {trash})
+  t.is(code, 1, 'exit 1')
+  t.regex(stderr, /Directory not empty/, 'message must say Directory not empty')
+  t.true(await exists(dir), 'directory must be preserved')
+})
+
+test('L4: a trailing slash on a regular file says "Not a directory"', async t => {
+  const {trash, work} = await setup()
+  const f = path.join(work, 'reg.txt')
+  await fsp.writeFile(f, 'data')
+
+  const {code, stderr} = await run([`${f}/`], {trash})
+  t.is(code, 1, 'exit 1')
+  t.regex(stderr, /Not a directory/, 'message must say Not a directory')
+  t.true(await exists(f), 'file must be preserved')
+
+  const forced = await run(['-f', `${f}/`], {trash})
+  t.is(forced.code, 1, '-f must still exit 1 for ENOTDIR')
+  t.true(await exists(f), 'file still preserved under -f')
 })

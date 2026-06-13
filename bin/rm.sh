@@ -397,11 +397,17 @@ remove(){
 
     # if a directory, and without '-r' option
     if [[ ! -n $OPT_RECURSIVE ]]; then
-      # if with '-d' option, and is an empty dir
-      if [[ -n $OPT_EMPTY_DIR && ! $(ls -A "$file") ]]; then
+      # with '-d': trash an empty dir, but report a non-empty one as such
+      # (matching rm(1)) instead of the generic "is a directory".
+      if [[ -n $OPT_EMPTY_DIR ]]; then
+        if [[ ! $(ls -A "$file") ]]; then
           debug "$LINENO: trash an empty directory $file"
           trash "$file"
           return
+        fi
+
+        error "$COMMAND: $file: Directory not empty"
+        return 1
       fi
 
       debug "$LINENO: $file: is a directory"
@@ -709,7 +715,9 @@ is_protected(){
 applescript_trash(){
   local target=$1
 
-  [[ "$OPT_VERBOSE" == 1 ]] && list_files "$target"
+  # For symlinks we delegate to mac_trash below, which emits its own verbose
+  # output; printing here too would list the path twice.
+  [[ "$OPT_VERBOSE" == 1 && ! -L "$target" ]] && list_files "$target"
 
   # #47: Finder alias resolves symlinks to their targets.
   # For symbolic links, fallback to `mv`-based trash to remove the link itself.
@@ -820,6 +828,14 @@ mac_trash(){
     ext=
   else
     ext=".$ext"
+  fi
+
+  # A leading-dot name with no other dot (.bashrc, .gitignore) is extensionless
+  # to Finder; without this the split yields an empty name and a duplicate would
+  # become " HH.MM.SS.bashrc" (leading space, dot lost).
+  if [[ -z "$name" ]]; then
+    name=$base
+    ext=
   fi
 
   # foo.jpg => "foo 12.34.56.jpg"
@@ -1235,6 +1251,17 @@ for file in "${FILE_NAME[@]}"; do
     error "$COMMAND: \".\" and \"..\" may not be removed"
     EXIT_CODE=1
     continue
+  fi
+
+  # A trailing slash on a non-directory is ENOTDIR ("Not a directory"), not "No
+  # such file or directory"; real rm reports this even under -f.
+  if [[ "$file" == */ ]]; then
+    stripped=${file%/}
+    if [[ -n "$stripped" && ! -d "$stripped" && ( -e "$stripped" || -L "$stripped" ) ]]; then
+      error "$COMMAND: $file: Not a directory"
+      EXIT_CODE=1
+      continue
+    fi
   fi
 
   if [[ -e "$file" || -L "$file" ]]; then
