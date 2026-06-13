@@ -123,3 +123,19 @@ test('H2: -I prompts once for more than three files (10 files)', async t => {
     t.true(await exists(f), `${path.basename(f)} must survive after declining`)
   }
 })
+
+// When -i is given, a per-file confirmation must always fire (BSD semantics),
+// even when -I is also present (and would otherwise enter once-mode and skip
+// the prompt for a single file).
+for (const args of [['-i', '-I'], ['-iI']]) {
+  test(`H3: -i still prompts per file with ${args.join(' ')}`, async t => {
+    const {trash, work} = await setup()
+    const f = path.join(work, 'keep.txt')
+    await fsp.writeFile(f, 'precious')
+
+    const {stdout} = await run([...args, f], {trash, input: ['n']})
+
+    t.regex(stdout, /remove .*keep\.txt\?/, 'a per-file prompt must fire')
+    t.true(await exists(f), 'file must survive after declining the per-file prompt')
+  })
+}

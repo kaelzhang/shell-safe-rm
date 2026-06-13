@@ -319,16 +319,18 @@ for arg in ${ARG[@]}; do
     OPT_FORCE=1;        debug "$LINENO: force        : $arg"
     ;;
 
-  # interactive=always
+  # interactive=always.
+  # -i and -I are NOT mutually exclusive: BSD rm always applies the per-file
+  # confirmation when -i is given, regardless of -I or argument order. Keeping
+  # both flags independent guarantees the per-file prompt is never silently
+  # dropped (the -I once-prompt still fires on top when its threshold is met).
   -i|--interactive|--interactive=always)
     OPT_INTERACTIVE=1;  debug "$LINENO: interactive  : $arg"
-    OPT_INTERACTIVE_ONCE=
     ;;
 
-  # interactive=once. interactive=once and interactive=always are exclusive
+  # interactive=once
   -I|--interactive=once)
     OPT_INTERACTIVE_ONCE=1;  debug "$LINENO: interactive_once  : $arg"
-    OPT_INTERACTIVE=;
     ;;
 
   # both r and R is allowed
