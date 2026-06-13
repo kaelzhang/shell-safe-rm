@@ -14,6 +14,7 @@ const test = require('ava')
 
 const SAFE_RM = path.join(__dirname, '..', 'bin', 'rm.sh')
 const IS_ROOT = process.getuid() === 0
+const IS_MACOS = process.platform === 'darwin'
 const TMP_ROOT = fs.realpathSync(tmp.dirSync().name)
 const BASE = path.join(TMP_ROOT, 'safe-rm-safety')
 
@@ -204,4 +205,37 @@ async function concurrentRound (t, round) {
 
 test('H4: concurrent same-name trashing must not lose data', async t => {
   await Promise.all(Array.from({length: 6}, (_, round) => concurrentRound(t, round)))
+})
+
+test('A1: a broken symlink already in the trash must not be overwritten', async t => {
+  if (!IS_MACOS) {
+    t.pass('macOS-only: check_mac_trash_path is on the mac_trash path')
+    return
+  }
+
+  const {trash, work} = await setup()
+
+  // A broken (dangling) symlink already sitting in the trash, named like the
+  // file we are about to trash. `-e` follows it and reports "not present".
+  await fsp.symlink('/nonexistent/target', path.join(trash, 'foo.txt'))
+
+  const f = path.join(work, 'foo.txt')
+  await fsp.writeFile(f, 'REAL')
+
+  // Force genuine macOS mode (mac_trash); under `test:mock-linux` the inherited
+  // SAFE_RM_DEBUG_LINUX=1 would otherwise route through linux_trash.
+  const {code} = await run([f], {trash, env: {SAFE_RM_DEBUG_LINUX: ''}})
+  t.is(code, 0)
+
+  const link = await fsp.lstat(path.join(trash, 'foo.txt'))
+  t.true(link.isSymbolicLink(), 'the pre-existing broken symlink must be preserved')
+
+  const names = await fsp.readdir(trash)
+  const realContents = await Promise.all(
+    names.map(async n => {
+      const st = await fsp.lstat(path.join(trash, n))
+      return st.isFile() ? fsp.readFile(path.join(trash, n), 'utf8') : null
+    })
+  )
+  t.true(realContents.includes('REAL'), 'the real file must be trashed under a fresh name')
 })

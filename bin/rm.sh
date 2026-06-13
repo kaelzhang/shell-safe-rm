@@ -731,7 +731,10 @@ check_mac_trash_path(){
   local ext=$2
   local full_path="$path$ext"
 
-  if [[ ! -e "$full_path" ]]; then
+  # Use -e || -L so a broken (dangling) symlink already in the trash still
+  # counts as a collision; otherwise `-e` follows it, reports "absent", and the
+  # move would silently overwrite that symlink.
+  if [[ ! -e "$full_path" && ! -L "$full_path" ]]; then
     _mac_trash_path_ret=$full_path
     return
   fi
@@ -741,7 +744,7 @@ check_mac_trash_path(){
   short_time
   full_path="$path $_short_time_ret$ext"
 
-  while [[ -e "$full_path" ]]; do
+  while [[ -e "$full_path" || -L "$full_path" ]]; do
     debug "$LINENO: $full_path already exists"
     full_path="${full_path}X"
   done
