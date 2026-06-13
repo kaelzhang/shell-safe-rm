@@ -614,13 +614,16 @@ is_in_trash(){
     return 0
   fi
 
-  # Per-mount trashes live at <topdir>/.Trash/<uid>/ or <topdir>/.Trash-<uid>/.
+  # Per-mount: the target counts as "in trash" only if it actually lives inside
+  # the per-mount trash that this target's own filesystem would route to -- the
+  # same membership test used for the home trash, NOT a free-floating path
+  # pattern (which would wrongly match e.g. a synced copy of another machine's
+  # trash sitting on the home filesystem, and permanently delete it).
   if [[ -n $PER_MOUNT_ACTIVE ]]; then
-    case "$target_abs/" in
-      */.Trash/"$SAFE_RM_UID"/*|*/.Trash-"$SAFE_RM_UID"/*)
-        return 0
-        ;;
-    esac
+    resolve_linux_trash_root "$1"
+    if [[ -n $_trash_topdir && "$target_abs" == "$_trash_root"/files/* ]]; then
+      return 0
+    fi
   fi
 
   return 1
