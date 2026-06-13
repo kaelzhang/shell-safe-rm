@@ -8,7 +8,8 @@
   "scripts": {
     "test:rm": "ava --timeout=10s --verbose test/safe-rm.test.js",
     "test:as": "ava --timeout=10s --verbose test/safe-rm-as.test.js",
-    "test": "npm run test:rm && npm run test:as",
+    "test:per-mount": "ava --timeout=10s --verbose test/linux-per-mount.test.js",
+    "test": "npm run test:rm && npm run test:as && npm run test:per-mount",
     "test:dev": "NODE_DEBUG=safe-rm npm run test",
     "test:debug": "SAFE_RM_DEBUG=1 npm run test:dev",
     "test:mock-linux": "SAFE_RM_DEBUG_LINUX=1 npm run test",
