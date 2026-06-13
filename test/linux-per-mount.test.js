@@ -299,3 +299,93 @@ test('permanently deletes a file already inside a per-mount trash', async t => {
     'not re-trashed as a duplicate'
   )
 })
+
+test('a normal file under a .Trash-<uid> dir on the home fs is trashed, not destroyed', async t => {
+  const {
+    root, home, mnt, config
+  } = await setup()
+
+  // A path that merely CONTAINS a per-mount-trash-shaped component but lives on
+  // the home filesystem (not under the mount seam) must be moved, not rm -rf'd,
+  // even with permanent-delete enabled.
+  const victim = await writeFile(
+    path.join(root, 'synced', `.Trash-${UID}`, 'files', 'keep.txt'),
+    'precious'
+  )
+
+  const {code} = await run([victim], baseEnv({
+    home, config, mnt, permDel: 'yes'
+  }))
+
+  t.is(code, 0)
+  t.false(await fse.pathExists(victim), 'removed from original location')
+  t.true(
+    await fse.pathExists(path.join(homeTrashFiles(home), 'keep.txt')),
+    'moved to the home trash, NOT permanently deleted'
+  )
+})
+
+test('per-mount active with no mount seam still trashes safely (real detection path)', async t => {
+  const {home, root, config} = await setup()
+  const file = await writeFile(path.join(root, 'plain', 'x.txt'))
+
+  // No SAFE_RM_DEBUG_MOUNT_ROOTS -> exercises the real device-detection branch.
+  // On any single-filesystem box (or where `stat -c` is unavailable) this must
+  // still land safely in the home trash.
+  const {code} = await run([file], baseEnv({home, config, mnt: ''}))
+
+  t.is(code, 0)
+  t.false(await fse.pathExists(file), 'source removed')
+  t.true(
+    await fse.pathExists(path.join(homeTrashFiles(home), 'x.txt')),
+    'lands in the home trash'
+  )
+})
+
+test('mount-trash .trashinfo Path is relative and percent-encoded', async t => {
+  const {home, mnt, config} = await setup()
+  const file = await writeFile(path.join(mnt, 'sub dir', 'a b.txt'))
+
+  const {code} = await run([file], baseEnv({home, config, mnt}))
+
+  t.is(code, 0)
+  t.true(
+    await fse.pathExists(mountTrash(mnt, path.join('files', 'a b.txt'))),
+    'file in mount trash'
+  )
+
+  const info = await fsp.readFile(
+    mountTrash(mnt, path.join('info', 'a b.txt.trashinfo')),
+    'utf8'
+  )
+  t.regex(info, /^Path=sub%20dir\/a%20b\.txt$/m, 'relative + percent-encoded, "/" preserved')
+})
+
+test('duplicate basenames in a mount trash get .1 with distinct relative Paths', async t => {
+  const {home, mnt, config} = await setup()
+  const f1 = await writeFile(path.join(mnt, 'd1', 'foo.txt'), 'one')
+  const f2 = await writeFile(path.join(mnt, 'd2', 'foo.txt'), 'two')
+
+  t.is((await run([f1], baseEnv({home, config, mnt}))).code, 0)
+  t.is((await run([f2], baseEnv({home, config, mnt}))).code, 0)
+
+  t.true(
+    await fse.pathExists(mountTrash(mnt, path.join('files', 'foo.txt'))),
+    'first kept as foo.txt'
+  )
+  t.true(
+    await fse.pathExists(mountTrash(mnt, path.join('files', 'foo.txt.1'))),
+    'second becomes foo.txt.1'
+  )
+
+  const info1 = await fsp.readFile(
+    mountTrash(mnt, path.join('info', 'foo.txt.trashinfo')),
+    'utf8'
+  )
+  const info2 = await fsp.readFile(
+    mountTrash(mnt, path.join('info', 'foo.txt.1.trashinfo')),
+    'utf8'
+  )
+  t.regex(info1, /^Path=d1\/foo\.txt$/m, 'first records its own relative path')
+  t.regex(info2, /^Path=d2\/foo\.txt$/m, 'second records its own relative path')
+})
