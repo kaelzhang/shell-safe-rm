@@ -762,7 +762,15 @@ check_target_to_move(){
   if [[ -d "$_to_move" ]]; then
     # We don't know whether a relative path is the pwd or not
     if [[ "${_to_move:0:1}" == '.' || "$_to_move" == "$__DIRNAME" ]]; then
-      cd "$_to_move"
+      # Guard the cd: if the target cannot be entered (e.g. no execute bit),
+      # we must NOT substitute the parent's basename below — doing so would
+      # `mv` the entire parent directory (and all siblings) into the trash.
+      # Fall back to moving the original target path as given.
+      if ! cd "$_to_move" 2>/dev/null; then
+        _to_move=$1
+        _traveled=
+        return
+      fi
 
       # pwd can't be piped?
       local current=$(pwd)
