@@ -784,7 +784,14 @@ check_target_to_move(){
       # We can not `mv` a dir that is the pwd,
       #   or it will throw an "Operation not permitted" error,
       #   so we have to `cd` to the parent dir first
-      cd ..
+      if ! cd .. 2> /dev/null; then
+        # Could not reach the parent; restore cwd and fall back to the original
+        # target rather than mv'ing from an unexpected directory.
+        _to_move=$1
+        _traveled=
+        cd "$__DIRNAME" 2> /dev/null
+        return
+      fi
       _traveled=1
     fi
   fi
@@ -1093,6 +1100,12 @@ linux_trash(){
            "$trashinfo_path_value" "$trash_time" > "$info_path"
        ) 2> /dev/null; then
       reserved=1
+      break
+    fi
+
+    # A failure that left no info file behind is not a name collision (e.g. info/
+    # is unwritable); retrying would only spin, so stop and report failure.
+    if [[ ! -e "$info_path" ]]; then
       break
     fi
 

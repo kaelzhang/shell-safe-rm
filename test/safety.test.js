@@ -239,3 +239,25 @@ test('A1: a broken symlink already in the trash must not be overwritten', async 
   )
   t.true(realContents.includes('REAL'), 'the real file must be trashed under a fresh name')
 })
+
+test('A3: an unwritable info/ fails fast instead of spinning', async t => {
+  if (IS_ROOT) {
+    t.pass('skipped as root (permission bits are ignored)')
+    return
+  }
+
+  const {trash, work} = await setup()
+  await seedLinuxTrash(trash)
+  await fsp.chmod(path.join(trash, 'info'), 0o0555) // unwritable -> reservation always fails
+
+  const f = path.join(work, 'doc.txt')
+  await fsp.writeFile(f, 'keep me')
+
+  try {
+    const {code} = await run([f], {trash, env: LINUX_ENV})
+    t.not(code, 0, 'must fail (could not reserve a trash name), not spin to timeout')
+    t.true(await exists(f), 'original file must be preserved on reservation failure')
+  } finally {
+    await fsp.chmod(path.join(trash, 'info'), 0o0755).catch(() => {})
+  }
+})
