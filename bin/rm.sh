@@ -981,57 +981,68 @@ resolve_linux_trash_root(){
 }
 
 
-# Check if the base name already exists in the trash
-# If it does, foo -> foo.1
-# If foo.1 exists, foo.1 -> foo.2
+# Pick a trash base name that is free in BOTH files/ and info/.
+# foo -> foo (if free), else foo.1, foo.2, ...
+# Considering info/ as well prevents reusing the name of an orphan .trashinfo
+# (info present, files/ counterpart gone), which would otherwise be clobbered.
 check_linux_trash_base(){
   local base=$1
   local trash_root=${2:-$SAFE_RM_TRASH}
-  local trash="$trash_root/files"
-  local path="$trash/$base"
+  local files="$trash_root/files"
+  local info="$trash_root/info"
 
-  # if already in the trash
-  if [[ -e "$path" ]]; then
-    debug "$LINENO: $path already exists"
-
-    local max_n=0
-    local num=
-    local restore_nullglob=$(shopt -p nullglob)
-    local restore_dotglob=$(shopt -p dotglob)
-    shopt -s nullglob dotglob
-    local list=("$trash"/*)
-    eval "$restore_nullglob"
-    eval "$restore_dotglob"
-    local file
-    local name
-    local suffix
-
-    for file in "${list[@]}"; do
-      name=$(basename -- "$file")
-
-      if [[ "$name" != "$base".* ]]; then
-        continue
-      fi
-
-      suffix=${name#"$base".}
-
-      if [[ ! "$suffix" =~ ^[0-9]+$ ]]; then
-        continue
-      fi
-
-      # Remove leading zeros and make sure the number is in base 10
-      num=$((10#$suffix))
-      if ((num > max_n)); then
-        max_n=$num
-      fi
-    done
-
-    (( max_n += 1 ))
-
-    echo "$base.$max_n"
-  else
+  # Free only if neither the file nor its info counterpart exists.
+  if [[ ! -e "$files/$base" && ! -e "$info/$base.trashinfo" ]]; then
     echo "$base"
+    return
   fi
+
+  debug "$LINENO: $base already exists in the trash"
+
+  local max_n=0
+  local num=
+  local restore_nullglob=$(shopt -p nullglob)
+  local restore_dotglob=$(shopt -p dotglob)
+  shopt -s nullglob dotglob
+  local files_list=("$files"/*)
+  local info_list=("$info"/*)
+  eval "$restore_nullglob"
+  eval "$restore_dotglob"
+
+  # Normalize: file entries as-is; info entries with the .trashinfo suffix removed.
+  local names=()
+  local entry
+  for entry in "${files_list[@]}"; do
+    names+=("$(basename -- "$entry")")
+  done
+  for entry in "${info_list[@]}"; do
+    entry=$(basename -- "$entry")
+    names+=("${entry%.trashinfo}")
+  done
+
+  local name
+  local suffix
+  for name in "${names[@]}"; do
+    if [[ "$name" != "$base".* ]]; then
+      continue
+    fi
+
+    suffix=${name#"$base".}
+
+    if [[ ! "$suffix" =~ ^[0-9]+$ ]]; then
+      continue
+    fi
+
+    # Remove leading zeros and make sure the number is in base 10
+    num=$((10#$suffix))
+    if ((num > max_n)); then
+      max_n=$num
+    fi
+  done
+
+  (( max_n += 1 ))
+
+  echo "$base.$max_n"
 }
 
 
@@ -1060,9 +1071,38 @@ linux_trash(){
   local move=$_to_move
   local base=$(basename -- "$move")
 
-  base=$(check_linux_trash_base "$base" "$trash_root")
+  # Reserve a unique trash name by atomically creating its .trashinfo FIRST,
+  # per the FreeDesktop spec (info-first, opened with O_EXCL). `noclobber` makes
+  # the redirect fail if the name is already taken, so a concurrent run or an
+  # orphan info file forces a different name instead of overwriting an existing
+  # file or clobbering another item's metadata. Retry until a free name is won.
+  local trash_time=$(date +%Y-%m-%dT%H:%M:%S)
+  local candidate
+  local info_path
+  local reserved=
+  local attempts=0
+  while (( attempts < 10000 )); do
+    candidate=$(check_linux_trash_base "$base" "$trash_root")
+    info_path="$trash_root/info/$candidate.trashinfo"
 
-  local trash_path="$trash_root/files/$base"
+    if ( set -o noclobber
+         printf '[Trash Info]\nPath=%s\nDeletionDate=%s\n' \
+           "$trashinfo_path_value" "$trash_time" > "$info_path"
+       ) 2> /dev/null; then
+      reserved=1
+      break
+    fi
+
+    (( attempts += 1 ))
+  done
+
+  if [[ -z $reserved ]]; then
+    error "$COMMAND: $1: could not reserve a trash name"
+    [[ "$_traveled" == 1 ]] && cd "$__DIRNAME" &> /dev/null
+    return 1
+  fi
+
+  local trash_path="$trash_root/files/$candidate"
 
   [[ "$OPT_VERBOSE" == 1 ]] && list_files "$1"
 
@@ -1072,24 +1112,16 @@ linux_trash(){
   local move_status=$?
 
   if [[ $move_status -ne 0 ]]; then
-    # Keep failure visible to remove()/EXIT_CODE and skip writing .trashinfo.
+    # Roll back the reserved info so we never leave info-without-files;
+    # keep the failure visible to remove()/EXIT_CODE.
+    /bin/rm -f -- "$info_path"
     [[ "$_traveled" == 1 ]] && cd "$__DIRNAME" &> /dev/null
     return $move_status
   fi
 
-  # Save linux trash info
-  local info_path="$trash_root/info/$base.trashinfo"
-  local trash_time=$(date +%Y-%m-%dT%H:%M:%S)
-  cat > "$info_path" <<EOF
-[Trash Info]
-Path=$trashinfo_path_value
-DeletionDate=$trash_time
-EOF
-  local info_status=$?
-
   [[ "$_traveled" == 1 ]] && cd "$__DIRNAME" &> /dev/null
 
-  return $info_status
+  return 0
 }
 
 

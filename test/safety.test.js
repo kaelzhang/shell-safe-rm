@@ -119,9 +119,10 @@ test('H2: -I prompts once for more than three files (10 files)', async t => {
   const {stdout} = await run(['-I', ...files], {trash, input: ['n']})
 
   t.true(stdout.includes('remove all arguments?'), 'the -I once-prompt must fire for >3 files')
-  for (const f of files) {
-    t.true(await exists(f), `${path.basename(f)} must survive after declining`)
-  }
+  const survived = await Promise.all(files.map(f => exists(f)))
+  survived.forEach((ok, i) => {
+    t.true(ok, `${path.basename(files[i])} must survive after declining`)
+  })
 })
 
 // When -i is given, a per-file confirmation must always fire (BSD semantics),
@@ -139,3 +140,68 @@ for (const args of [['-i', '-I'], ['-iI']]) {
     t.true(await exists(f), 'file must survive after declining the per-file prompt')
   })
 }
+
+const LINUX_ENV = {SAFE_RM_DEBUG_LINUX: '1'}
+
+async function seedLinuxTrash (trash) {
+  await Promise.all([
+    fse.ensureDir(path.join(trash, 'files')),
+    fse.ensureDir(path.join(trash, 'info'))
+  ])
+}
+
+test('H4: trashing must not clobber an orphan .trashinfo', async t => {
+  const {trash, work} = await setup()
+  await seedLinuxTrash(trash)
+
+  // An orphan info entry whose files/ counterpart no longer exists.
+  const orphan = path.join(trash, 'info', 'report.doc.trashinfo')
+  const orphanContent = '[Trash Info]\nPath=/PRECIOUS/report.doc\nDeletionDate=2020-01-01T00:00:00\n'
+  await fsp.writeFile(orphan, orphanContent)
+
+  const f = path.join(work, 'report.doc')
+  await fsp.writeFile(f, 'new content')
+
+  const {code} = await run([f], {trash, env: LINUX_ENV})
+  t.is(code, 0)
+
+  t.is(
+    await fsp.readFile(orphan, 'utf8'),
+    orphanContent,
+    'the orphan .trashinfo must be preserved, not overwritten'
+  )
+  t.true(
+    await exists(path.join(trash, 'files', 'report.doc.1')),
+    'the new file must take a fresh name (report.doc.1)'
+  )
+})
+
+async function concurrentRound (t, round) {
+  const {trash, work} = await setup()
+  await seedLinuxTrash(trash)
+
+  const a = path.join(work, 'a', 'dup.txt')
+  const b = path.join(work, 'b', 'dup.txt')
+  await fse.ensureDir(path.dirname(a))
+  await fse.ensureDir(path.dirname(b))
+  await Promise.all([fsp.writeFile(a, 'AAAA'), fsp.writeFile(b, 'BBBB')])
+
+  const [ra, rb] = await Promise.all([
+    run([a], {trash, env: LINUX_ENV}),
+    run([b], {trash, env: LINUX_ENV})
+  ])
+  t.is(ra.code, 0)
+  t.is(rb.code, 0)
+
+  const filesDir = path.join(trash, 'files')
+  const names = await fsp.readdir(filesDir)
+  const contents = await Promise.all(
+    names.map(n => fsp.readFile(path.join(filesDir, n), 'utf8'))
+  )
+  t.true(contents.includes('AAAA'), `round ${round}: AAAA must survive`)
+  t.true(contents.includes('BBBB'), `round ${round}: BBBB must survive`)
+}
+
+test('H4: concurrent same-name trashing must not lose data', async t => {
+  await Promise.all(Array.from({length: 6}, (_, round) => concurrentRound(t, round)))
+})
