@@ -952,6 +952,15 @@ resolve_linux_trash_root(){
     [[ -z $topdir || "$topdir" == "/" ]] && return 0
   fi
 
+  # The relative .trashinfo Path requires topdir to be a genuine prefix of the
+  # target's path. findmnt canonicalizes symlinks while get_absolute_path does
+  # not, so a symlinked mount alias could break that prefix; fall back to the
+  # home trash rather than record a malformed (absolute) Path in a mount trash.
+  case "$abs/" in
+    "$topdir"/*) ;;
+    *) return 0 ;;
+  esac
+
   if select_mount_trash_dir "$topdir"; then
     _trash_root=$_mount_trash_root
     _trash_topdir=$topdir
