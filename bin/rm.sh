@@ -203,28 +203,34 @@ invalid_option(){
   # case:
   # rm -c
   # -> rm: illegal option -- c
-  echo "rm: illegal option -- ${1:1:1}"
+  # Diagnostics go to stderr (like rm(1)); use $COMMAND for a consistent prefix.
+  error "$COMMAND: illegal option -- ${1:1:1}"
   usage
 }
 
 usage(){
-  echo "usage: rm [-f | -i] [-dIRrv] file ..."
-  echo "       unlink [--] file"
+  {
+    echo "usage: rm [-f | -i] [-dIRrv] file ..."
+    echo "       unlink [--] file"
+  } >&2
 
-  # if has an invalid option, exit with 64
+  # BSD rm uses EX_USAGE (64); GNU coreutils uses 1.
+  if [[ "$OS_TYPE" == "Linux" ]]; then
+    exit 1
+  fi
   exit 64
 }
 
 
 if [[ "$#" == 0 ]]; then
-  echo "safe-rm"
+  error "safe-rm"
   usage
 fi
 
 
 ARG_END=
-FILE_NAME=
-ARG=
+FILE_NAME=()
+ARG=()
 
 file_i=0
 arg_i=0
@@ -361,6 +367,22 @@ for arg in ${ARG[@]}; do
 done
 # /parse argv
 # ------------------------------------------------------------------------------
+
+
+# No file operand: report it like rm(1) instead of processing a phantom empty
+# operand. -f keeps the POSIX exception and exits 0 silently.
+if (( ${#FILE_NAME[@]} == 0 )); then
+  if [[ -n $OPT_FORCE ]]; then
+    do_exit $LINENO 0
+  fi
+
+  if [[ "$OS_TYPE" == "Linux" ]]; then
+    error "$COMMAND: missing operand"
+    do_exit $LINENO 1
+  fi
+
+  usage
+fi
 
 
 # make sure recycled bin exists

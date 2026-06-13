@@ -358,3 +358,23 @@ test('L4: a trailing slash on a regular file says "Not a directory"', async t =>
   t.is(forced.code, 1, '-f must still exit 1 for ENOTDIR')
   t.true(await exists(f), 'file still preserved under -f')
 })
+
+test('M2: options with no operand: no phantom empty-path error; -f exits 0', async t => {
+  const {trash} = await setup()
+
+  const {code, stdout, stderr} = await run(['-v'], {trash})
+  t.false((stdout + stderr).includes(': : No such file'), 'no phantom empty-path error')
+  t.not(code, 0, 'a missing-operand / usage error')
+
+  const forced = await run(['-f'], {trash})
+  t.is(forced.code, 0, '-f with no operand exits 0 (POSIX force exception)')
+})
+
+test('M4/L5: an invalid option is reported on stderr with a consistent prefix', async t => {
+  const {trash} = await setup()
+
+  const {code, stdout, stderr} = await run(['-Z'], {trash})
+  t.is(stdout, '', 'diagnostics must not go to stdout')
+  t.regex(stderr, /rm\.sh: illegal option -- Z/, 'stderr uses the $COMMAND prefix')
+  t.not(code, 0, 'nonzero exit')
+})
