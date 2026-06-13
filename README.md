@@ -21,6 +21,7 @@ The project was initially developed on Mac OS X and has been continuously used b
 - Using `safe-rm`, the files or directories you choose to remove will be moved to the system Trash instead of simply deleting them. You could put them back whenever you want manually.
   - On MacOS, `safe-rm` will use [AppleScript][applescript] to delete files or directories as much as possible to enable the built-in "put-back" capability in the system Trash bin.
   - On Linux, it also follows the operating system's conventions for handling duplicate files in the Trash to avoid overwriting
+  - On Linux, it can optionally keep a trash directory per filesystem/mount so deletes across devices stay instant (opt-in, see [`SAFE_RM_TRASH_PER_MOUNT`](#faster-deletes-across-filesystems-per-mount-trash-linux-only))
 - Supports Custom [configurations](#configuration).
 
 ## Supported options
@@ -155,6 +156,35 @@ By default, on MacOS, `safe-rm` uses AppleScript as much as possible so that rem
 export SAFE_RM_TRASH=/path/to/trash
 ```
 
+### Faster Deletes Across Filesystems (Per-Mount Trash, Linux only)
+
+By default, `safe-rm` moves everything into the home trash. Removing a file that
+lives on another filesystem/mount (an external drive, a separate partition) then
+becomes a slow cross-device copy instead of an instant move.
+
+When `SAFE_RM_TRASH_PER_MOUNT` is enabled, `safe-rm` routes each target to a
+trash directory on the **same** filesystem, so the move stays instant:
+
+```sh
+export SAFE_RM_TRASH_PER_MOUNT=yes
+```
+
+It follows the [FreeDesktop.org Trash specification][trash-spec] for mount-point
+trash directories: it uses `$topdir/.Trash/$uid` when the volume has an
+administrator-created `.Trash` directory that passes the spec's checks (a real
+directory, with the sticky bit, not a symlink), otherwise it creates and uses
+`$topdir/.Trash-$uid`. Files trashed there record a `Path` relative to the
+volume's top directory, so standard desktop trash tools can still restore them.
+
+Pay **ATTENTION** that:
+- It is **Linux only**. On MacOS the default AppleScript/Finder behavior already
+  trashes per-volume.
+- It is **opt-in**: off unless `SAFE_RM_TRASH_PER_MOUNT` starts with `y`/`Y`.
+- It only applies when using the **default** trash. Setting a custom
+  `SAFE_RM_TRASH` consolidates everything there and disables per-mount routing.
+- If the per-mount trash cannot be created (for example, a read-only mount),
+  `safe-rm` falls back to the home trash.
+
 ### Permanent Delete Files or Directories that Are Already in the Trash
 
 ```sh
@@ -245,3 +275,4 @@ Pay **ATTENTION** that:
 [applescript]: https://en.wikipedia.org/wiki/AppleScript
 [rm]: https://en.wikipedia.org/wiki/Rm_(Unix)
 [safe-rm]: https://github.com/kaelzhang/shell-safe-rm
+[trash-spec]: https://specifications.freedesktop.org/trash/latest/

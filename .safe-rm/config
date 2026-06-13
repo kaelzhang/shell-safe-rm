@@ -12,6 +12,17 @@
 # export SAFE_RM_TRASH=/path/to/trash
 
 #
+# (Linux only) If you want deletes across filesystems/mounts to stay instant,
+#   uncomment the line after divider `-----` to keep a trash directory per
+#   mount (following the FreeDesktop trash spec) instead of always moving files
+#   into the home trash.
+# It defaults to 'no'. Any value starting with 'y' or 'Y' is treated as 'yes'.
+# Note: it only applies when using the default trash; setting a custom
+#   SAFE_RM_TRASH above disables it.
+# -----------------------------------------------
+# export SAFE_RM_TRASH_PER_MOUNT=yes
+
+#
 # If you want to permanently delete files that are already in the trash,
 #   uncomment the line after divider `-----`
 # It defaults to 'no'.
