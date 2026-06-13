@@ -20,6 +20,7 @@ const test = require('ava')
 const SAFE_RM = path.join(__dirname, '..', 'bin', 'rm.sh')
 const UID = process.getuid()
 const IS_ROOT = UID === 0
+const IS_MACOS = process.platform === 'darwin'
 
 // Resolve symlinks once so prefixes match what the script computes (e.g. on
 // macOS /var is a symlink to /private/var).
@@ -388,4 +389,41 @@ test('duplicate basenames in a mount trash get .1 with distinct relative Paths',
   )
   t.regex(info1, /^Path=d1\/foo\.txt$/m, 'first records its own relative path')
   t.regex(info2, /^Path=d2\/foo\.txt$/m, 'second records its own relative path')
+})
+
+test('on macOS the per-mount env vars are inert (Linux-only gate)', async t => {
+  if (!IS_MACOS) {
+    t.pass('macOS-only: per-mount is gated on OS_TYPE == Linux')
+    return
+  }
+
+  const {root, mnt, config} = await setup()
+  const trash = path.join(root, 'mac-trash')
+  await fse.ensureDir(trash)
+  const file = await writeFile(path.join(mnt, 'foo.txt'))
+
+  // Genuine macOS mode (SAFE_RM_DEBUG_LINUX empty) with the per-mount env set.
+  // A custom trash routes through mac_trash, avoiding the real ~/.Trash; the
+  // OS_TYPE gate is identical regardless of trash, so this proves inertness.
+  const {code, stderr} = await run([file], {
+    HOME: path.join(root, 'home'),
+    XDG_CONFIG_HOME: '',
+    SAFE_RM_CONFIG_ROOT: config,
+    SAFE_RM_DEBUG_LINUX: '',
+    SAFE_RM_TRASH: trash,
+    SAFE_RM_TRASH_PER_MOUNT: 'yes',
+    SAFE_RM_DEBUG_MOUNT_ROOTS: mnt
+  })
+
+  t.is(code, 0, 'exit 0, no runtime error')
+  t.is(stderr, '', 'no error output (no stat -c / findmnt invoked)')
+  t.false(await fse.pathExists(file), 'source removed')
+  t.true(
+    await fse.pathExists(path.join(trash, 'foo.txt')),
+    'trashed normally via mac_trash'
+  )
+  t.false(
+    await fse.pathExists(path.join(mnt, `.Trash-${UID}`)),
+    'no per-mount trash created on macOS'
+  )
 })
