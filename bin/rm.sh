@@ -630,8 +630,11 @@ encode_trashinfo_path(){
         out="$out$char"
         ;;
       *)
-        hex=$(printf '%s' "$char" | od -An -tx1 | tr -d ' \n' | tr '[:lower:]' '[:upper:]')
-        out="$out%$hex"
+        # Builtin only: a `$(printf | od | tr)` pipeline here forks per byte,
+        # which made trashing a long non-ASCII path take tens of seconds.
+        # Some bash versions sign-extend bytes >= 0x80, so keep the last 2 digits.
+        printf -v hex '%02X' "'$char"
+        out="$out%${hex: -2}"
         ;;
     esac
   done
@@ -1067,11 +1070,12 @@ check_linux_trash_base(){
   # Normalize: file entries as-is; info entries with the .trashinfo suffix removed.
   local names=()
   local entry
+  # Glob results never end in "/", so ${entry##*/} equals basename without a fork.
   for entry in "${files_list[@]}"; do
-    names+=("$(basename -- "$entry")")
+    names+=("${entry##*/}")
   done
   for entry in "${info_list[@]}"; do
-    entry=$(basename -- "$entry")
+    entry=${entry##*/}
     names+=("${entry%.trashinfo}")
   done
 

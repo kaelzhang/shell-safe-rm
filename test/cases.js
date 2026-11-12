@@ -298,6 +298,34 @@ module.exports = (
     t.true(info.includes(`Path=${expectedPath}`))
   })
 
+  !is_rm(type) && !is_as(type) && !IS_MACOS && test(`linux .trashinfo percent-encodes non-ASCII and punctuation bytes`, async t => {
+    const {
+      source_path,
+      trash_path,
+      createFile,
+      runRm,
+      pathExists
+    } = t.context
+
+    const filename = '收入分析（2026年8-10月）#1&a.txt'
+    const filepath = await createFile({
+      name: filename
+    })
+    const canonicalFilepath = await fs.realpath(filepath)
+
+    const result = await runRm([`./${filename}`], {
+      cwd: source_path
+    })
+
+    assertEmptySuccess(t, result)
+    t.false(await pathExists(filepath), 'source file should be removed')
+
+    const infoPath = path.join(trash_path, 'info', `${filename}.trashinfo`)
+    const info = await fs.readFile(infoPath, 'utf8')
+
+    t.true(info.includes(`Path=${encodeTrashInfoPath(canonicalFilepath)}`))
+  })
+
   !is_rm(type) && !is_as(type) && IS_MACOS && test(`mac fallback duplicate naming matches Finder without extension`, async t => {
     const {
       root,
